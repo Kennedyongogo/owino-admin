@@ -36,7 +36,7 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 
-const images = ["/beth1.jpg", "/beth2.jpg", "/beth3.jpg"];
+const images = ["/images/owino bg 1.jpg", "/images/owino bg 2.jpg", "/images/owino bg 3.jpg"];
 
 export default function LoginPage(props) {
   const theme = useTheme();
@@ -234,7 +234,7 @@ export default function LoginPage(props) {
     // Preload images
     images.forEach((imageSrc) => {
       const img = new Image();
-      img.src = imageSrc;
+      img.src = encodeURI(imageSrc);
     });
 
     const changeBackground = () => {
@@ -244,7 +244,7 @@ export default function LoginPage(props) {
 
         setTimeout(() => {
           currentIndex = (currentIndex + 1) % images.length;
-          backgroundElement.style.backgroundImage = `url(${images[currentIndex]})`;
+          backgroundElement.style.backgroundImage = `url(${encodeURI(images[currentIndex])})`;
           // Fade in new image
           backgroundElement.style.opacity = 1;
         }, 500);
@@ -279,7 +279,7 @@ export default function LoginPage(props) {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundImage: `url(${images[0]})`,
+          backgroundImage: `url(${encodeURI(images[0])})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
@@ -331,7 +331,21 @@ export default function LoginPage(props) {
                           WebkitTextFillColor: "transparent",
                         }}
                       >
-                        Betheltus Construction LTD
+                        Owino interiors
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          color: "rgba(255, 255, 255, 0.9)",
+                          fontWeight: 400,
+                          fontSize: { xs: "1rem", sm: "1.2rem", md: "1.4rem" },
+                          textAlign: { xs: "center", md: "left" },
+                          letterSpacing: "2px",
+                          mt: 1,
+                          fontStyle: "italic",
+                        }}
+                      >
+                        Curating Beauty in Every Space
                       </Typography>
                     </Box>
                   </Slide>
@@ -545,7 +559,7 @@ export default function LoginPage(props) {
             </Grid>
           </Grid>
 
-          {/* Footer with logos */}
+          {/* Developed by Card */}
           <Fade in timeout={2000}>
             <Box
               sx={{
@@ -554,46 +568,80 @@ export default function LoginPage(props) {
                 left: "50%",
                 transform: "translateX(-50%)",
                 display: "flex",
-                alignItems: "center",
-                gap: 4,
-                background: "rgba(255, 255, 255, 0.1)",
-                backdropFilter: "blur(25px)",
-                p: 2,
-                borderRadius: 3,
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  background: "rgba(255, 255, 255, 0.15)",
-                  transform: "translateX(-50%) translateY(-2px)",
-                },
+                justifyContent: "center",
               }}
             >
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#fff",
-                    display: "block",
+              <Card
+                elevation={8}
+                sx={{
+                  width: { xs: "90%", sm: 320, md: 360 },
+                  minHeight: { xs: 48, sm: 56 },
+                  borderRadius: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  py: 1.5,
+                  px: 1,
+                  background: "linear-gradient(135deg, rgba(247, 220, 111, 0.25) 0%, rgba(244, 208, 63, 0.3) 50%, rgba(241, 196, 15, 0.25) 100%)",
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255, 255, 255, 0.4)",
+                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+                  position: "relative",
+                  overflow: "hidden",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
+                    borderRadius: "inherit",
+                    pointerEvents: "none",
+                  },
+                  "&:hover": {
+                    transform: "translateY(-4px) scale(1.02)",
+                    boxShadow: "0 12px 40px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
+                    border: "1px solid rgba(255, 255, 255, 0.5)",
+                    background: "linear-gradient(135deg, rgba(247, 220, 111, 0.35) 0%, rgba(244, 208, 63, 0.4) 50%, rgba(241, 196, 15, 0.35) 100%)",
+                  },
+                }}
+              >
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    color: "#000",
+                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                    fontWeight: 700,
+                    mb: 0.5,
                     textAlign: "center",
-                    fontWeight: 500,
-                    letterSpacing: "0.5px",
+                    whiteSpace: "nowrap",
+                    position: "relative",
+                    zIndex: 1,
+                    transition: "color 0.3s ease",
                   }}
                 >
-                  Powered by
+                  Developed by
                 </Typography>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#fff",
-                    fontWeight: 600,
-                    letterSpacing: "1px",
-                    textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    color: "#000",
+                    fontSize: { xs: "0.85rem", sm: "1rem" },
+                    fontWeight: 700,
+                    textAlign: "center",
+                    lineHeight: 1.2,
+                    position: "relative",
+                    zIndex: 1,
+                    transition: "color 0.3s ease",
                   }}
                 >
-                  Carl Solutions
+                  Carlvyne Technologies Ltd
                 </Typography>
-              </Box>
+              </Card>
             </Box>
           </Fade>
         </Container>
