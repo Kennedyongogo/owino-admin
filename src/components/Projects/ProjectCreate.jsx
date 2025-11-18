@@ -96,6 +96,7 @@ const ProjectCreate = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
 
   const statusOptions = [
     { value: "planning", label: "Planning", color: "#ff9800" },
@@ -249,6 +250,20 @@ const ProjectCreate = () => {
     }
   };
 
+  // Reset map to current location
+  const resetMapToCurrentLocation = () => {
+    if (currentLocation && mapInstance.current) {
+      const { latitude, longitude } = currentLocation;
+      const view = mapInstance.current.getView();
+      view.setCenter(fromLonLat([longitude, latitude]));
+      view.setZoom(15);
+      updateMarker(longitude, latitude);
+    } else {
+      // If no stored location, get it first
+      getCurrentLocation();
+    }
+  };
+
   // Get current location
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -264,6 +279,11 @@ const ProjectCreate = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
+        const location = { latitude, longitude };
+
+        // Store current location
+        setCurrentLocation(location);
+
         handleInputChange("latitude", latitude);
         handleInputChange("longitude", longitude);
 
@@ -361,6 +381,36 @@ const ProjectCreate = () => {
     };
   }, []);
 
+  // Get current location on map initialization (if not already set)
+  useEffect(() => {
+    if (mapInitialized && !currentLocation && navigator.geolocation) {
+      // Only get location if coordinates are not already set
+      if (!projectForm.latitude || !projectForm.longitude) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setCurrentLocation({ latitude, longitude });
+            // Optionally center map on current location
+            if (mapInstance.current) {
+              const view = mapInstance.current.getView();
+              view.setCenter(fromLonLat([longitude, latitude]));
+              view.setZoom(12);
+            }
+          },
+          (error) => {
+            // Silently fail - user can manually get location if needed
+            console.log("Could not get initial location:", error);
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 5000,
+            maximumAge: 300000, // 5 minutes
+          }
+        );
+      }
+    }
+  }, [mapInitialized]);
+
   // Update marker when coordinates change manually
   useEffect(() => {
     if (
@@ -386,18 +436,22 @@ const ProjectCreate = () => {
     }
   }, [projectForm.latitude, projectForm.longitude, mapInitialized]);
 
-  // Debounced search
+  // Debounced search and reset on clear
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery.trim()) {
         searchPlace(searchQuery);
       } else {
         setSearchResults([]);
+        // Reset map to current location when search is cleared
+        if (mapInitialized) {
+          resetMapToCurrentLocation();
+        }
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, mapInitialized]);
 
   const handleCreate = async () => {
     try {
