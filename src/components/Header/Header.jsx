@@ -7,6 +7,8 @@ import {
   Typography,
   CircularProgress,
   Avatar,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -60,6 +62,8 @@ const getInitials = (name) => {
 };
 
 export default function Header(props) {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
   const [currentUser, setCurrentUser] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
   const [toggleAccount, setToggleAccount] = useState(false);
@@ -115,18 +119,20 @@ export default function Header(props) {
           width: "100%",
         }}
       >
-        <IconButton
-          aria-label="open drawer"
-          onClick={props.handleDrawerOpen}
-          edge="start"
-          sx={{
-            color: "white",
-            marginRight: 5,
-            ...(props.open && { display: "none" }),
-          }}
-        >
-          <MenuIcon />
-        </IconButton>
+        {!isSmallScreen && (
+          <IconButton
+            aria-label="open drawer"
+            onClick={props.handleDrawerOpen}
+            edge="start"
+            sx={{
+              color: "white",
+              marginRight: 5,
+              display: props.open ? "none" : "flex",
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+        )}
 
         <Box sx={{ flexGrow: 1 }}></Box>
 

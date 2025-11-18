@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Container,
@@ -20,6 +20,9 @@ import {
   Paper,
   IconButton,
   InputAdornment,
+  useMediaQuery,
+  useTheme,
+  Autocomplete,
 } from "@mui/material";
 import {
   Construction,
@@ -30,12 +33,29 @@ import {
   Image as ImageIcon,
   AttachFile,
   Upload,
+  MyLocation,
+  Search as SearchIcon,
+  LocationOn,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import "ol/ol.css";
+import Map from "ol/Map";
+import View from "ol/View";
+import TileLayer from "ol/layer/Tile";
+import OSM from "ol/source/OSM";
+import { fromLonLat, toLonLat } from "ol/proj";
+import { defaults as defaultControls } from "ol/control";
+import Feature from "ol/Feature";
+import Point from "ol/geom/Point";
+import { Vector as VectorLayer } from "ol/layer";
+import { Vector as VectorSource } from "ol/source";
+import { Style, Icon } from "ol/style";
 
 const ProjectCreate = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -66,6 +86,16 @@ const ProjectCreate = () => {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [filePreviews, setFilePreviews] = useState([]);
   const [blueprintPreviews, setBlueprintPreviews] = useState([]);
+
+  // Map related states
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+  const vectorLayerRef = useRef(null);
+  const [mapInitialized, setMapInitialized] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   const statusOptions = [
     { value: "planning", label: "Planning", color: "#ff9800" },
@@ -168,6 +198,207 @@ const ProjectCreate = () => {
     setBlueprintPreviews(newPreviews);
   };
 
+  // Geocoding search function
+  const searchPlace = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // Using Nominatim (OpenStreetMap geocoding service)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query
+        )}&limit=5&addressdetails=1`,
+        {
+          headers: {
+            "User-Agent": "OwinoInteriors/1.0",
+          },
+        }
+      );
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error("Error searching place:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Handle place selection from search
+  const handlePlaceSelect = (place) => {
+    if (place) {
+      const lat = parseFloat(place.lat);
+      const lon = parseFloat(place.lon);
+      handleInputChange("latitude", lat);
+      handleInputChange("longitude", lon);
+      if (place.display_name) {
+        handleInputChange("location_name", place.display_name);
+      }
+
+      // Center map on selected place
+      if (mapInstance.current) {
+        const view = mapInstance.current.getView();
+        view.setCenter(fromLonLat([lon, lat]));
+        view.setZoom(15);
+        updateMarker(lon, lat);
+      }
+    }
+  };
+
+  // Get current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Geolocation is not supported by your browser.",
+      });
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        handleInputChange("latitude", latitude);
+        handleInputChange("longitude", longitude);
+
+        // Center map on current location
+        if (mapInstance.current) {
+          const view = mapInstance.current.getView();
+          view.setCenter(fromLonLat([longitude, latitude]));
+          view.setZoom(15);
+          updateMarker(longitude, latitude);
+        }
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Unable to retrieve your location. Please check your permissions.",
+        });
+        setIsGettingLocation(false);
+      }
+    );
+  };
+
+  // Update marker on map
+  const updateMarker = (lon, lat) => {
+    if (!mapInstance.current || !vectorLayerRef.current) return;
+
+    const vectorSource = vectorLayerRef.current.getSource();
+    vectorSource.clear();
+
+    const feature = new Feature({
+      geometry: new Point(fromLonLat([lon, lat])),
+    });
+
+    feature.setStyle(
+      new Style({
+        image: new Icon({
+          src: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="12" fill="#667eea" stroke="white" stroke-width="3"/>
+              <circle cx="16" cy="16" r="6" fill="white"/>
+              <circle cx="16" cy="16" r="3" fill="#667eea"/>
+            </svg>
+          `)}`,
+          scale: 1,
+          anchor: [0.5, 0.5],
+        }),
+      })
+    );
+
+    vectorSource.addFeature(feature);
+  };
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapInstance.current && mapRef.current) {
+      const osmLayer = new TileLayer({
+        source: new OSM(),
+      });
+
+      const vectorSource = new VectorSource();
+      const vectorLayer = new VectorLayer({
+        source: vectorSource,
+      });
+      vectorLayerRef.current = vectorLayer;
+
+      const map = new Map({
+        target: mapRef.current,
+        layers: [osmLayer, vectorLayer],
+        view: new View({
+          center: fromLonLat([36.7758, -1.2921]), // Default to Nairobi, Kenya
+          zoom: 10,
+        }),
+        controls: defaultControls(),
+      });
+
+      // Handle map click
+      map.on("click", (event) => {
+        const [lon, lat] = toLonLat(event.coordinate);
+        handleInputChange("latitude", lat);
+        handleInputChange("longitude", lon);
+        updateMarker(lon, lat);
+      });
+
+      mapInstance.current = map;
+      setMapInitialized(true);
+    }
+
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.setTarget(undefined);
+        mapInstance.current = null;
+      }
+    };
+  }, []);
+
+  // Update marker when coordinates change manually
+  useEffect(() => {
+    if (
+      mapInitialized &&
+      projectForm.latitude &&
+      projectForm.longitude &&
+      !isNaN(parseFloat(projectForm.latitude)) &&
+      !isNaN(parseFloat(projectForm.longitude))
+    ) {
+      const lat = parseFloat(projectForm.latitude);
+      const lon = parseFloat(projectForm.longitude);
+      if (mapInstance.current) {
+        const view = mapInstance.current.getView();
+        const currentCenter = toLonLat(view.getCenter());
+        // Only update marker if coordinates are significantly different
+        if (
+          Math.abs(currentCenter[0] - lon) > 0.001 ||
+          Math.abs(currentCenter[1] - lat) > 0.001
+        ) {
+          updateMarker(lon, lat);
+        }
+      }
+    }
+  }, [projectForm.latitude, projectForm.longitude, mapInitialized]);
+
+  // Debounced search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchPlace(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   const handleCreate = async () => {
     try {
       setSaving(true);
@@ -254,20 +485,22 @@ const ProjectCreate = () => {
       sx={{
         minHeight: "100vh",
         background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        py: 4,
+        py: { xs: 2, sm: 4 },
+        px: { xs: 1, sm: 0 },
       }}
     >
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
         {/* Header */}
         <Box
           sx={{
             background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            p: 3,
+            p: { xs: 2, sm: 3 },
             color: "white",
             position: "relative",
             overflow: "hidden",
-            borderRadius: 2,
-            mb: 4,
+            borderRadius: { xs: 2, sm: 2 },
+            mb: { xs: 2, sm: 4 },
+            boxShadow: "0 4px 20px rgba(102, 126, 234, 0.3)",
           }}
         >
           <Box
@@ -295,27 +528,40 @@ const ProjectCreate = () => {
           <Stack
             direction="row"
             alignItems="center"
-            spacing={2}
-            sx={{ position: "relative", zIndex: 1 }}
+            spacing={{ xs: 1, sm: 2 }}
+            sx={{
+              position: "relative",
+              zIndex: 1,
+              flexWrap: { xs: "wrap", sm: "nowrap" },
+            }}
           >
             <IconButton
               onClick={() => navigate("/projects")}
               sx={{
                 backgroundColor: "rgba(255, 255, 255, 0.2)",
                 color: "white",
+                width: { xs: 36, sm: 40 },
+                height: { xs: 36, sm: 40 },
                 "&:hover": {
                   backgroundColor: "rgba(255, 255, 255, 0.3)",
                 },
               }}
             >
-              <ArrowBack />
+              <ArrowBack sx={{ fontSize: { xs: 20, sm: 24 } }} />
             </IconButton>
-            <Construction sx={{ fontSize: 40 }} />
+            <Construction
+              sx={{
+                fontSize: { xs: 28, sm: 40 },
+                display: { xs: "none", sm: "block" },
+              }}
+            />
             <Typography
               variant="h3"
               sx={{
                 fontWeight: "bold",
                 textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+                fontSize: { xs: "1.5rem", sm: "2rem", md: "2.5rem" },
+                wordBreak: "break-word",
               }}
             >
               Create New Project
@@ -325,14 +571,14 @@ const ProjectCreate = () => {
           {error && (
             <Alert
               severity="error"
-              sx={{ mt: 2, position: "relative", zIndex: 1 }}
+              sx={{ mt: { xs: 1.5, sm: 2 }, position: "relative", zIndex: 1 }}
             >
               {error}
             </Alert>
           )}
         </Box>
 
-        <Grid container spacing={4} sx={{ width: "100%" }}>
+        <Grid container spacing={{ xs: 2, sm: 4 }} sx={{ width: "100%" }}>
           {/* Basic Information */}
           <Grid item xs={12} sx={{ width: "100%" }}>
             <Card
@@ -340,18 +586,37 @@ const ProjectCreate = () => {
                 backgroundColor: "white",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                 border: "1px solid #e0e0e0",
-                mb: 3,
+                mb: { xs: 2, sm: 3 },
+                borderRadius: { xs: 2, sm: 3 },
               }}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <Construction sx={{ color: "#667eea" }} />
-                  <Typography variant="h5" sx={{ color: "#333" }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  mb={{ xs: 2, sm: 3 }}
+                >
+                  <Construction
+                    sx={{ color: "#667eea", fontSize: { xs: 24, sm: 28 } }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: "#333",
+                      fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                      fontWeight: 700,
+                    }}
+                  >
                     Basic Information
                   </Typography>
                 </Box>
 
-                <Grid container spacing={3} sx={{ flexDirection: "column" }}>
+                <Grid
+                  container
+                  spacing={{ xs: 2, sm: 3 }}
+                  sx={{ flexDirection: "column" }}
+                >
                   <Grid item xs={12} sx={{ width: "100%", maxWidth: "100%" }}>
                     <TextField
                       fullWidth
@@ -436,6 +701,192 @@ const ProjectCreate = () => {
                       }}
                     />
                   </Grid>
+
+                  {/* Map Component for Location Selection */}
+                  <Grid item xs={12}>
+                    <Card
+                      sx={{
+                        backgroundColor: "white",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+                        border: "1px solid #e0e0e0",
+                        borderRadius: { xs: 2, sm: 3 },
+                        overflow: "hidden",
+                      }}
+                    >
+                      <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                        <Box
+                          display="flex"
+                          alignItems="center"
+                          gap={1}
+                          mb={{ xs: 1.5, sm: 2 }}
+                        >
+                          <LocationOn
+                            sx={{
+                              color: "#667eea",
+                              fontSize: { xs: 20, sm: 24 },
+                            }}
+                          />
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              color: "#333",
+                              fontSize: { xs: "1rem", sm: "1.125rem" },
+                              fontWeight: 700,
+                            }}
+                          >
+                            Select Location on Map
+                          </Typography>
+                        </Box>
+
+                        {/* Search Bar */}
+                        <Box mb={{ xs: 1.5, sm: 2 }}>
+                          <Autocomplete
+                            freeSolo
+                            options={searchResults}
+                            getOptionLabel={(option) =>
+                              typeof option === "string"
+                                ? option
+                                : option.display_name || ""
+                            }
+                            loading={isSearching}
+                            onInputChange={(event, newValue) => {
+                              setSearchQuery(newValue);
+                            }}
+                            onChange={(event, newValue) => {
+                              if (newValue && typeof newValue !== "string") {
+                                handlePlaceSelect(newValue);
+                              }
+                            }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                placeholder="Search for a place..."
+                                size="small"
+                                InputProps={{
+                                  ...params.InputProps,
+                                  startAdornment: (
+                                    <>
+                                      <InputAdornment position="start">
+                                        <SearchIcon />
+                                      </InputAdornment>
+                                      {params.InputProps.startAdornment}
+                                    </>
+                                  ),
+                                  endAdornment: (
+                                    <>
+                                      {isSearching ? (
+                                        <CircularProgress size={20} />
+                                      ) : null}
+                                      {params.InputProps.endAdornment}
+                                    </>
+                                  ),
+                                }}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                                  },
+                                }}
+                              />
+                            )}
+                            renderOption={(props, option) => (
+                              <Box
+                                component="li"
+                                {...props}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                  py: 1,
+                                }}
+                              >
+                                <LocationOn
+                                  sx={{ color: "#667eea", fontSize: 20 }}
+                                />
+                                <Typography variant="body2">
+                                  {option.display_name}
+                                </Typography>
+                              </Box>
+                            )}
+                          />
+                        </Box>
+
+                        {/* Action Buttons */}
+                        <Box
+                          display="flex"
+                          gap={1}
+                          mb={{ xs: 1.5, sm: 2 }}
+                          flexWrap="wrap"
+                        >
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={
+                              isGettingLocation ? (
+                                <CircularProgress size={16} />
+                              ) : (
+                                <MyLocation />
+                              )
+                            }
+                            onClick={getCurrentLocation}
+                            disabled={isGettingLocation}
+                            sx={{
+                              textTransform: "none",
+                              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                              py: { xs: 0.75, sm: 1 },
+                              px: { xs: 1.5, sm: 2 },
+                              borderColor: "#667eea",
+                              color: "#667eea",
+                              "&:hover": {
+                                borderColor: "#5a6fd8",
+                                backgroundColor: "rgba(102, 126, 234, 0.08)",
+                              },
+                            }}
+                          >
+                            {isGettingLocation
+                              ? "Getting Location..."
+                              : "Use Current Location"}
+                          </Button>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                              alignSelf: "center",
+                              ml: "auto",
+                            }}
+                          >
+                            Click on map to set coordinates
+                          </Typography>
+                        </Box>
+
+                        {/* Map Container */}
+                        <Box
+                          ref={mapRef}
+                          sx={{
+                            width: "100%",
+                            height: { xs: 300, sm: 400, md: 450 },
+                            borderRadius: { xs: 2, sm: 2 },
+                            overflow: "hidden",
+                            border: "1px solid #e0e0e0",
+                            position: "relative",
+                            "& .ol-zoom": {
+                              top: "0.5em",
+                              left: "0.5em",
+                            },
+                            "& .ol-zoom-in, & .ol-zoom-out": {
+                              backgroundColor: "rgba(255, 255, 255, 0.9)",
+                              border: "1px solid #ccc",
+                              borderRadius: "4px",
+                              width: "32px",
+                              height: "32px",
+                              lineHeight: "32px",
+                            },
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -476,18 +927,37 @@ const ProjectCreate = () => {
                 backgroundColor: "white",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                 border: "1px solid #e0e0e0",
-                mb: 3,
+                mb: { xs: 2, sm: 3 },
+                borderRadius: { xs: 2, sm: 3 },
               }}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <Construction sx={{ color: "#f093fb" }} />
-                  <Typography variant="h5" sx={{ color: "#333" }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  mb={{ xs: 2, sm: 3 }}
+                >
+                  <Construction
+                    sx={{ color: "#f093fb", fontSize: { xs: 24, sm: 28 } }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: "#333",
+                      fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                      fontWeight: 700,
+                    }}
+                  >
                     Financial Information
                   </Typography>
                 </Box>
 
-                <Grid container spacing={3} sx={{ flexDirection: "column" }}>
+                <Grid
+                  container
+                  spacing={{ xs: 2, sm: 3 }}
+                  sx={{ flexDirection: "column" }}
+                >
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -555,18 +1025,37 @@ const ProjectCreate = () => {
                 backgroundColor: "white",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                 border: "1px solid #e0e0e0",
-                mb: 3,
+                mb: { xs: 2, sm: 3 },
+                borderRadius: { xs: 2, sm: 3 },
               }}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <Construction sx={{ color: "#4facfe" }} />
-                  <Typography variant="h5" sx={{ color: "#333" }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  mb={{ xs: 2, sm: 3 }}
+                >
+                  <Construction
+                    sx={{ color: "#4facfe", fontSize: { xs: 24, sm: 28 } }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: "#333",
+                      fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                      fontWeight: 700,
+                    }}
+                  >
                     Stakeholders
                   </Typography>
                 </Box>
 
-                <Grid container spacing={3} sx={{ flexDirection: "column" }}>
+                <Grid
+                  container
+                  spacing={{ xs: 2, sm: 3 }}
+                  sx={{ flexDirection: "column" }}
+                >
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
@@ -664,18 +1153,37 @@ const ProjectCreate = () => {
                 backgroundColor: "white",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                 border: "1px solid #e0e0e0",
-                mb: 3,
+                mb: { xs: 2, sm: 3 },
+                borderRadius: { xs: 2, sm: 3 },
               }}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <Construction sx={{ color: "#43e97b" }} />
-                  <Typography variant="h5" sx={{ color: "#333" }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  mb={{ xs: 2, sm: 3 }}
+                >
+                  <Construction
+                    sx={{ color: "#43e97b", fontSize: { xs: 24, sm: 28 } }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: "#333",
+                      fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                      fontWeight: 700,
+                    }}
+                  >
                     Project Status & Progress
                   </Typography>
                 </Box>
 
-                <Grid container spacing={3} sx={{ flexDirection: "column" }}>
+                <Grid
+                  container
+                  spacing={{ xs: 2, sm: 3 }}
+                  sx={{ flexDirection: "column" }}
+                >
                   <Grid item xs={12}>
                     <FormControl
                       fullWidth
@@ -745,7 +1253,7 @@ const ProjectCreate = () => {
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       label="Floor Size (m²)"
@@ -761,7 +1269,7 @@ const ProjectCreate = () => {
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6}>
                     <FormControl
                       fullWidth
                       sx={{
@@ -798,13 +1306,28 @@ const ProjectCreate = () => {
                 backgroundColor: "white",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                 border: "1px solid #e0e0e0",
-                mb: 3,
+                mb: { xs: 2, sm: 3 },
+                borderRadius: { xs: 2, sm: 3 },
               }}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <Upload sx={{ color: "#fa709a" }} />
-                  <Typography variant="h5" sx={{ color: "#333" }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  mb={{ xs: 2, sm: 3 }}
+                >
+                  <Upload
+                    sx={{ color: "#fa709a", fontSize: { xs: 24, sm: 28 } }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: "#333",
+                      fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                      fontWeight: 700,
+                    }}
+                  >
                     File Upload
                   </Typography>
                 </Box>
@@ -825,10 +1348,17 @@ const ProjectCreate = () => {
                     sx={{
                       color: "#fa709a",
                       borderColor: "#fa709a",
+                      py: { xs: 1.25, sm: 1.5 },
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: 2,
                       "&:hover": {
                         borderColor: "#fa709a",
                         backgroundColor: "rgba(250, 112, 154, 0.1)",
+                        transform: { xs: "none", sm: "translateY(-2px)" },
                       },
+                      transition: "all 0.3s ease",
                     }}
                   >
                     Select Files
@@ -836,11 +1366,15 @@ const ProjectCreate = () => {
                 </label>
 
                 {selectedFiles.length > 0 && (
-                  <Box mt={2}>
-                    <Typography variant="subtitle2" mb={1}>
+                  <Box mt={{ xs: 1.5, sm: 2 }}>
+                    <Typography
+                      variant="subtitle2"
+                      mb={1}
+                      sx={{ fontSize: { xs: "0.875rem", sm: "0.95rem" } }}
+                    >
                       Selected Files:
                     </Typography>
-                    <Grid container spacing={1}>
+                    <Grid container spacing={{ xs: 1, sm: 1.5 }}>
                       {selectedFiles.map((file, index) => (
                         <Grid item xs={12} key={index}>
                           <Box
@@ -900,13 +1434,28 @@ const ProjectCreate = () => {
                 backgroundColor: "white",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                 border: "1px solid #e0e0e0",
-                mb: 3,
+                mb: { xs: 2, sm: 3 },
+                borderRadius: { xs: 2, sm: 3 },
               }}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <Construction sx={{ color: "#ff6b6b" }} />
-                  <Typography variant="h5" sx={{ color: "#333" }}>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  mb={{ xs: 2, sm: 3 }}
+                >
+                  <Construction
+                    sx={{ color: "#ff6b6b", fontSize: { xs: 24, sm: 28 } }}
+                  />
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      color: "#333",
+                      fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                      fontWeight: 700,
+                    }}
+                  >
                     Project Blueprints
                   </Typography>
                 </Box>
@@ -929,11 +1478,18 @@ const ProjectCreate = () => {
                     sx={{
                       color: "#ff6b6b",
                       borderColor: "#ff6b6b",
+                      py: { xs: 1.25, sm: 1.5 },
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: 2,
+                      mb: { xs: 1.5, sm: 2 },
                       "&:hover": {
                         borderColor: "#ff6b6b",
                         backgroundColor: "rgba(255, 107, 107, 0.1)",
+                        transform: { xs: "none", sm: "translateY(-2px)" },
                       },
-                      mb: 2,
+                      transition: "all 0.3s ease",
                     }}
                   >
                     Select Blueprint Files
@@ -943,10 +1499,14 @@ const ProjectCreate = () => {
                 {/* Selected Blueprint Files */}
                 {blueprintFiles.length > 0 && (
                   <Box>
-                    <Typography variant="subtitle2" mb={1}>
+                    <Typography
+                      variant="subtitle2"
+                      mb={1}
+                      sx={{ fontSize: { xs: "0.875rem", sm: "0.95rem" } }}
+                    >
                       Selected Blueprint Files:
                     </Typography>
-                    <Grid container spacing={1}>
+                    <Grid container spacing={{ xs: 1, sm: 1.5 }}>
                       {blueprintFiles.map((file, index) => (
                         <Grid item xs={12} key={index}>
                           <Box
@@ -1017,31 +1577,46 @@ const ProjectCreate = () => {
                 backgroundColor: "white",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
                 border: "1px solid #e0e0e0",
+                borderRadius: { xs: 2, sm: 3 },
               }}
             >
-              <CardContent>
-                <Box display="flex">
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                <Box
+                  display="flex"
+                  flexDirection={{ xs: "column", sm: "row" }}
+                  gap={{ xs: 2, sm: 2 }}
+                >
                   <Button
                     variant="contained"
                     size="large"
+                    fullWidth={isSmallScreen}
                     startIcon={
                       saving ? <CircularProgress size={20} /> : <Save />
                     }
                     onClick={handleCreate}
                     disabled={!isFormValid() || saving}
                     sx={{
-                      flex: 1,
+                      flex: { xs: "none", sm: 1 },
                       background:
                         "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                       color: "white",
+                      py: { xs: 1.5, sm: 1.75 },
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: 3,
+                      boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
                       "&:hover": {
                         background:
                           "linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)",
+                        transform: { xs: "none", sm: "translateY(-2px)" },
+                        boxShadow: "0 6px 20px rgba(102, 126, 234, 0.4)",
                       },
                       "&:disabled": {
                         background: "#e0e0e0",
                         color: "#999",
                       },
+                      transition: "all 0.3s ease",
                     }}
                   >
                     {saving ? "Creating..." : "Create Project"}
@@ -1049,15 +1624,23 @@ const ProjectCreate = () => {
                   <Button
                     variant="outlined"
                     size="large"
+                    fullWidth={isSmallScreen}
                     onClick={() => navigate("/projects")}
                     sx={{
-                      flex: 1,
+                      flex: { xs: "none", sm: 1 },
                       color: "#667eea",
                       borderColor: "#667eea",
+                      py: { xs: 1.5, sm: 1.75 },
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                      fontWeight: 600,
+                      textTransform: "none",
+                      borderRadius: 3,
                       "&:hover": {
                         borderColor: "#667eea",
                         backgroundColor: "rgba(102, 126, 234, 0.1)",
+                        transform: { xs: "none", sm: "translateY(-2px)" },
                       },
+                      transition: "all 0.3s ease",
                     }}
                   >
                     Cancel

@@ -47,7 +47,15 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import { Box } from "@mui/material";
+import {
+  Box,
+  BottomNavigation,
+  BottomNavigationAction,
+  useMediaQuery,
+  Menu,
+  MenuItem,
+  Paper,
+} from "@mui/material";
 import Header from "./Header/Header";
 import { Gear } from "@phosphor-icons/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -129,6 +137,7 @@ const Navbar = (props) => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
   const [open, setOpen] = useState(() => {
     return window.innerWidth >= theme.breakpoints.values.md;
   });
@@ -139,6 +148,9 @@ const Navbar = (props) => {
     "Construction Management": false,
   });
   const [menuItems, setMenuItems] = useState([]);
+  const [bottomNavValue, setBottomNavValue] = useState(0);
+  const [subMenuAnchor, setSubMenuAnchor] = useState(null);
+  const [selectedSubMenu, setSelectedSubMenu] = useState(null);
 
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
@@ -148,6 +160,36 @@ const Navbar = (props) => {
       ...prevState,
       [section]: !prevState[section],
     }));
+  };
+
+  // Handle bottom navigation change
+  const handleBottomNavChange = (event, newValue) => {
+    const mainItems = menuItems.filter((item) => item.path || item.subItems);
+    const item = mainItems[newValue];
+    if (item) {
+      if (item.subItems) {
+        // Open submenu for items with sub-items
+        setSelectedSubMenu(item);
+        setSubMenuAnchor(event.currentTarget);
+        setBottomNavValue(newValue);
+      } else if (item.path) {
+        navigate(item.path);
+        setBottomNavValue(newValue);
+      }
+    }
+  };
+
+  // Handle submenu item click
+  const handleSubMenuItemClick = (subItem) => {
+    navigate(subItem.path);
+    setSubMenuAnchor(null);
+    setSelectedSubMenu(null);
+  };
+
+  // Close submenu
+  const handleSubMenuClose = () => {
+    setSubMenuAnchor(null);
+    setSelectedSubMenu(null);
   };
 
   const logout = () => {
@@ -239,6 +281,19 @@ const Navbar = (props) => {
     return () => window.removeEventListener("resize", handleResize);
   }, [theme.breakpoints.values.md]);
 
+  // Sync bottom navigation value with current route
+  useEffect(() => {
+    if (isSmallScreen && menuItems.length > 0) {
+      const mainItems = menuItems.filter((item) => item.path || item.subItems);
+      const currentIndex = mainItems.findIndex(
+        (item) => item.path === location.pathname
+      );
+      if (currentIndex !== -1) {
+        setBottomNavValue(currentIndex);
+      }
+    }
+  }, [location.pathname, menuItems, isSmallScreen]);
+
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
@@ -251,7 +306,13 @@ const Navbar = (props) => {
           />
         </Toolbar>
       </AppBar>
-      <Drawer variant="permanent" open={open}>
+      <Drawer
+        variant="permanent"
+        open={open}
+        sx={{
+          display: { xs: "none", md: "block" },
+        }}
+      >
         <DrawerHeader>
           <Box></Box>
           <IconButton onClick={handleDrawerClose}>
@@ -461,6 +522,109 @@ const Navbar = (props) => {
           </ListItem>
         </List>
       </Drawer>
+
+      {/* Bottom Navigation for Small Screens */}
+      {isSmallScreen && (
+        <>
+          <Paper
+            sx={{
+              position: "fixed",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: theme.zIndex.drawer + 1,
+              display: { xs: "block", md: "none" },
+            }}
+            elevation={3}
+          >
+            <BottomNavigation
+              value={bottomNavValue}
+              onChange={handleBottomNavChange}
+              showLabels
+              sx={{
+                backgroundColor: "#fff",
+                borderTop: "1px solid rgba(0, 0, 0, 0.1)",
+                "& .MuiBottomNavigationAction-root": {
+                  color: "text.secondary",
+                  minWidth: "auto",
+                  padding: "6px 8px",
+                  "&.Mui-selected": {
+                    color: theme.palette.primary.main,
+                  },
+                },
+                "& .MuiBottomNavigationAction-label": {
+                  fontSize: "0.7rem",
+                  fontWeight: 500,
+                  "&.Mui-selected": {
+                    fontSize: "0.7rem",
+                    fontWeight: 600,
+                  },
+                },
+              }}
+            >
+              {menuItems
+                .filter((item) => item.path || item.subItems)
+                .map((item, index) => (
+                  <BottomNavigationAction
+                    key={item.text}
+                    label={
+                      item.text.length > 12
+                        ? item.text.substring(0, 10) + "..."
+                        : item.text
+                    }
+                    icon={item.icon}
+                    onClick={(e) => {
+                      if (item.subItems) {
+                        setSelectedSubMenu(item);
+                        setSubMenuAnchor(e.currentTarget);
+                      }
+                    }}
+                  />
+                ))}
+            </BottomNavigation>
+          </Paper>
+
+          {/* Submenu for items with sub-items */}
+          <Menu
+            anchorEl={subMenuAnchor}
+            open={Boolean(subMenuAnchor)}
+            onClose={handleSubMenuClose}
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "center",
+            }}
+            transformOrigin={{
+              vertical: "bottom",
+              horizontal: "center",
+            }}
+            PaperProps={{
+              sx: {
+                mt: -8,
+                minWidth: 200,
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+              },
+            }}
+          >
+            {selectedSubMenu?.subItems?.map((subItem) => (
+              <MenuItem
+                key={subItem.text}
+                onClick={() => handleSubMenuItemClick(subItem)}
+                selected={location.pathname === subItem.path}
+                sx={{
+                  "&.Mui-selected": {
+                    backgroundColor: "action.selected",
+                  },
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {subItem.icon}
+                  {subItem.text}
+                </Box>
+              </MenuItem>
+            ))}
+          </Menu>
+        </>
+      )}
     </Box>
   );
 };

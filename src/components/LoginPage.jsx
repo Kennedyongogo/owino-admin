@@ -36,7 +36,11 @@ import {
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 
-const images = ["/images/owino bg 1.jpg", "/images/owino bg 2.jpg", "/images/owino bg 3.jpg"];
+const images = [
+  "/images/owino bg 1.jpg",
+  "/images/owino bg 2.jpg",
+  "/images/owino bg 3.jpg",
+];
 
 export default function LoginPage(props) {
   const theme = useTheme();
@@ -244,7 +248,9 @@ export default function LoginPage(props) {
 
         setTimeout(() => {
           currentIndex = (currentIndex + 1) % images.length;
-          backgroundElement.style.backgroundImage = `url(${encodeURI(images[currentIndex])})`;
+          backgroundElement.style.backgroundImage = `url(${encodeURI(
+            images[currentIndex]
+          )})`;
           // Fade in new image
           backgroundElement.style.opacity = 1;
         }, 500);
@@ -336,13 +342,16 @@ export default function LoginPage(props) {
                       <Typography
                         variant="h6"
                         sx={{
-                          color: "rgba(255, 255, 255, 0.9)",
-                          fontWeight: 400,
+                          fontWeight: 700,
                           fontSize: { xs: "1rem", sm: "1.2rem", md: "1.4rem" },
                           textAlign: { xs: "center", md: "left" },
                           letterSpacing: "2px",
                           mt: 1,
                           fontStyle: "italic",
+                          background: `linear-gradient(45deg, ${theme.palette.primary.light}, ${theme.palette.secondary.light})`,
+                          backgroundClip: "text",
+                          WebkitBackgroundClip: "text",
+                          WebkitTextFillColor: "transparent",
                         }}
                       >
                         Curating Beauty in Every Space
@@ -361,10 +370,11 @@ export default function LoginPage(props) {
                 <Card
                   elevation={0}
                   sx={{
-                    p: 4,
+                    p: { xs: 2, sm: 4 },
                     maxWidth: 450,
                     width: "100%",
                     borderRadius: 4,
+                    mb: "1px",
                     background: "rgba(255, 255, 255, 0.1)",
                     backdropFilter: "blur(25px)",
                     border: "1px solid rgba(255, 255, 255, 0.2)",
@@ -384,9 +394,10 @@ export default function LoginPage(props) {
                       color="white"
                       variant="h4"
                       sx={{
-                        mb: 3,
+                        mb: { xs: 2, sm: 3 },
                         textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
                         letterSpacing: "1px",
+                        fontSize: { xs: "1.5rem", sm: "2.125rem" },
                       }}
                     >
                       Sign In
@@ -407,6 +418,8 @@ export default function LoginPage(props) {
                         ),
                       }}
                       sx={{
+                        mt: { xs: 1, sm: 1.5 },
+                        mb: { xs: 1, sm: 1.5 },
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255, 255, 255, 0.15)",
                           borderRadius: 3,
@@ -467,6 +480,8 @@ export default function LoginPage(props) {
                         ),
                       }}
                       sx={{
+                        mt: { xs: 1, sm: 1.5 },
+                        mb: { xs: 1, sm: 1.5 },
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255, 255, 255, 0.15)",
                           borderRadius: 3,
@@ -502,7 +517,7 @@ export default function LoginPage(props) {
                       color="white"
                       align="center"
                       sx={{
-                        mt: 2,
+                        mt: { xs: 1, sm: 2 },
                         cursor: "pointer",
                         transition: "all 0.3s ease",
                         "&:hover": {
@@ -530,8 +545,8 @@ export default function LoginPage(props) {
                         )
                       }
                       sx={{
-                        mt: 3,
-                        py: 1.5,
+                        mt: { xs: 2, sm: 3 },
+                        py: { xs: 1, sm: 1.5 },
                         borderRadius: 3,
                         background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
                         boxShadow: `0 4px 15px ${theme.palette.primary.main}40`,
@@ -574,20 +589,22 @@ export default function LoginPage(props) {
               <Card
                 elevation={8}
                 sx={{
-                  width: { xs: "90%", sm: 320, md: 360 },
-                  minHeight: { xs: 48, sm: 56 },
-                  borderRadius: 1.5,
+                  width: { xs: "98%", sm: 320, md: 360 },
+                  minHeight: { xs: 40, sm: 56 },
+                  borderRadius: 2,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  py: 1.5,
+                  py: { xs: 0.75, sm: 1.5 },
                   px: 1,
-                  background: "linear-gradient(135deg, rgba(247, 220, 111, 0.25) 0%, rgba(244, 208, 63, 0.3) 50%, rgba(241, 196, 15, 0.25) 100%)",
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  border: "1px solid rgba(255, 255, 255, 0.4)",
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+                  background:
+                    "linear-gradient(135deg, rgba(255, 215, 0, 0.4) 0%, rgba(255, 223, 0, 0.45) 50%, rgba(255, 193, 7, 0.4) 100%)",
+                  backdropFilter: "blur(20px) saturate(180%)",
+                  WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                  border: "1px solid rgba(255, 255, 255, 0.5)",
+                  boxShadow:
+                    "0 8px 32px rgba(255, 215, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(0, 0, 0, 0.1)",
                   position: "relative",
                   overflow: "hidden",
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -598,45 +615,52 @@ export default function LoginPage(props) {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
+                    background:
+                      "linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.15) 100%)",
                     borderRadius: "inherit",
                     pointerEvents: "none",
+                    zIndex: 0,
                   },
                   "&:hover": {
                     transform: "translateY(-4px) scale(1.02)",
-                    boxShadow: "0 12px 40px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-                    border: "1px solid rgba(255, 255, 255, 0.5)",
-                    background: "linear-gradient(135deg, rgba(247, 220, 111, 0.35) 0%, rgba(244, 208, 63, 0.4) 50%, rgba(241, 196, 15, 0.35) 100%)",
+                    boxShadow:
+                      "0 12px 40px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 0 rgba(0, 0, 0, 0.1)",
+                    border: "1px solid rgba(255, 255, 255, 0.6)",
+                    background:
+                      "linear-gradient(135deg, rgba(255, 215, 0, 0.5) 0%, rgba(255, 223, 0, 0.55) 50%, rgba(255, 193, 7, 0.5) 100%)",
                   },
                 }}
               >
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
+                <Typography
+                  variant="caption"
+                  sx={{
                     color: "#000",
-                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                    fontWeight: 700,
-                    mb: 0.5,
+                    fontSize: { xs: "0.8rem", sm: "0.75rem" },
+                    fontWeight: 900,
+                    mb: { xs: 0.25, sm: 0.5 },
                     textAlign: "center",
                     whiteSpace: "nowrap",
                     position: "relative",
                     zIndex: 1,
                     transition: "color 0.3s ease",
+                    textShadow: "0 1px 2px rgba(255, 255, 255, 0.5)",
                   }}
                 >
                   Developed by
                 </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
+                <Typography
+                  variant="body1"
+                  sx={{
                     color: "#000",
-                    fontSize: { xs: "0.85rem", sm: "1rem" },
-                    fontWeight: 700,
+                    fontSize: { xs: "0.75rem", sm: "1rem" },
+                    fontWeight: 900,
                     textAlign: "center",
                     lineHeight: 1.2,
                     position: "relative",
                     zIndex: 1,
                     transition: "color 0.3s ease",
+                    whiteSpace: "nowrap",
+                    textShadow: "0 1px 2px rgba(255, 255, 255, 0.5)",
                   }}
                 >
                   Carlvyne Technologies Ltd

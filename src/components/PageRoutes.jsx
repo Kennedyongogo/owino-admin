@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, useMediaQuery, useTheme } from "@mui/material";
 import Navbar from "./Navbar";
 import Settings from "../Pages/Settings";
 import NotFound from "../Pages/NotFound";
@@ -22,6 +22,8 @@ import UsersTable from "./Users/UsersTable";
 import Analytics from "./Analytics/Analytics";
 
 function PageRoutes() {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,7 +50,18 @@ function PageRoutes() {
   return (
     <Box sx={{ display: "flex" }}>
       <Navbar user={user} setUser={setUser} />
-      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 9 }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: { xs: 2, sm: 3 },
+          mt: { xs: 8, sm: 9 },
+          pb: { xs: 10, sm: 3 },
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "hidden",
+        }}
+      >
         {loading ? (
           <Box
             sx={{

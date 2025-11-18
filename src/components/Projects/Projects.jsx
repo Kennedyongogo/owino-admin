@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -49,14 +49,17 @@ import {
   Image as ImageIcon,
   AttachMoney as MoneyIcon,
   Engineering as EngineerIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from "@mui/icons-material";
-import { Tabs, Tab } from "@mui/material";
+import { Tabs, Tab, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Swal from "sweetalert2";
 
 const Projects = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -98,6 +101,9 @@ const Projects = () => {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [projectFiles, setProjectFiles] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
+  const tabsContainerRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   // Project status tabs configuration
   const statusTabs = [
@@ -121,6 +127,28 @@ const Projects = () => {
   useEffect(() => {
     fetchAllProjectsForCounts();
   }, []);
+
+  // Check scroll buttons on mount and resize
+  useEffect(() => {
+    const checkButtons = () => {
+      if (tabsContainerRef.current) {
+        const container = tabsContainerRef.current;
+        const scrollLeft = container.scrollLeft;
+        const scrollWidth = container.scrollWidth;
+        const clientWidth = container.clientWidth;
+
+        setCanScrollLeft(scrollLeft > 0);
+        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+      }
+    };
+
+    checkButtons();
+    const handleResize = () => {
+      setTimeout(checkButtons, 100);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [statusTabs]);
 
   const fetchProjects = async () => {
     try {
@@ -233,6 +261,39 @@ const Projects = () => {
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     setPage(0); // Reset to first page when changing tabs
+  };
+
+  // Check scroll position and update button states
+  const checkScrollButtons = () => {
+    if (tabsContainerRef.current) {
+      const container = tabsContainerRef.current;
+      const scrollLeft = container.scrollLeft;
+      const scrollWidth = container.scrollWidth;
+      const clientWidth = container.clientWidth;
+
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  // Scroll left
+  const scrollLeft = () => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({
+        left: -200,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  // Scroll right
+  const scrollRight = () => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({
+        left: 200,
+        behavior: "smooth",
+      });
+    }
   };
 
   const updateTabCounts = (projectsData) => {
@@ -573,8 +634,25 @@ const Projects = () => {
   return (
     <Box
       sx={{
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+        background:
+          "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 50%, #c3cfe2 100%)",
         minHeight: "100vh",
+        width: "100%",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+        position: "relative",
+        "&::before": {
+          content: '""',
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background:
+            "radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.05) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.05) 0%, transparent 50%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        },
       }}
     >
       <Paper
@@ -582,23 +660,44 @@ const Projects = () => {
         sx={{
           borderRadius: 0,
           overflow: "hidden",
-          background: "rgba(255, 255, 255, 0.95)",
-          backdropFilter: "blur(10px)",
+          background: "rgba(255, 255, 255, 0.98)",
+          backdropFilter: "blur(20px)",
           border: "none",
-          boxShadow: "none",
+          boxShadow: "0 0 0 1px rgba(102, 126, 234, 0.05)",
           minHeight: "100vh",
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "hidden",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {/* Header Section */}
         <Box
           sx={{
             background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            p: 3,
+            p: { xs: 2, sm: 4 },
             color: "white",
             position: "relative",
             overflow: "hidden",
+            width: "100%",
+            maxWidth: "100%",
+            boxSizing: "border-box",
+            boxShadow: "0 4px 20px rgba(102, 126, 234, 0.3)",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background:
+                "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)",
+              zIndex: 0,
+            },
           }}
         >
+          {/* Animated Background Elements */}
           <Box
             sx={{
               position: "absolute",
@@ -606,7 +705,7 @@ const Projects = () => {
               right: -50,
               width: 200,
               height: 200,
-              background: "rgba(255, 255, 255, 0.1)",
+              background: "rgba(255, 255, 255, 0.15)",
               borderRadius: "50%",
               zIndex: 0,
             }}
@@ -618,33 +717,59 @@ const Projects = () => {
               left: -30,
               width: 150,
               height: 150,
-              background: "rgba(255, 255, 255, 0.05)",
+              background: "rgba(255, 255, 255, 0.1)",
+              borderRadius: "50%",
+              zIndex: 0,
+            }}
+          />
+          <Box
+            sx={{
+              position: "absolute",
+              top: "50%",
+              right: "20%",
+              width: 100,
+              height: 100,
+              background: "rgba(255, 255, 255, 0.08)",
               borderRadius: "50%",
               zIndex: 0,
             }}
           />
           <Box
             display="flex"
-            flexDirection={{ xs: "column", sm: "row" }} // Stack on mobile
+            flexDirection={{ xs: "column", sm: "row" }}
             justifyContent="space-between"
             alignItems={{ xs: "flex-start", sm: "center" }}
-            gap={{ xs: 2, sm: 0 }} // Add gap on mobile
+            gap={{ xs: 1.5, sm: 0 }}
             position="relative"
             zIndex={1}
+            sx={{ width: "100%" }}
           >
-            <Box>
+            <Box sx={{ width: { xs: "100%", sm: "auto" }, flex: { sm: 1 } }}>
               <Typography
                 variant="h4"
                 sx={{
-                  fontWeight: 800,
-                  mb: 1,
-                  textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-                  fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" }, // Responsive font size
+                  fontWeight: 900,
+                  mb: { xs: 0.5, sm: 1 },
+                  textShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                  fontSize: { xs: "1.5rem", sm: "2.25rem", md: "2.5rem" },
+                  wordBreak: "break-word",
+                  color: "white",
+                  letterSpacing: "-0.5px",
                 }}
               >
                 Projects Management
               </Typography>
-              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  opacity: 0.95,
+                  fontSize: { xs: "0.875rem", sm: "1.125rem" },
+                  wordBreak: "break-word",
+                  color: "rgba(255, 255, 255, 0.95)",
+                  fontWeight: 400,
+                  textShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }}
+              >
                 Create and manage construction projects
               </Typography>
             </Box>
@@ -653,19 +778,49 @@ const Projects = () => {
               startIcon={<AddIcon />}
               onClick={() => navigate("/projects/create")}
               sx={{
-                background: "linear-gradient(45deg, #FF6B6B, #4ECDC4)",
-                borderRadius: 3,
-                px: { xs: 2, sm: 4 }, // Less padding on mobile
-                py: 1.5,
-                fontSize: { xs: "0.875rem", sm: "1rem" }, // Smaller font on mobile
-                fontWeight: 600,
+                background: "linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%)",
+                borderRadius: 4,
+                px: { xs: 2, sm: 4 },
+                py: { xs: 1.25, sm: 1.75 },
+                fontSize: { xs: "0.875rem", sm: "1rem" },
+                fontWeight: 700,
                 textTransform: "none",
-                boxShadow: "0 8px 25px rgba(255, 107, 107, 0.3)",
-                width: { xs: "100%", sm: "auto" }, // Full width on mobile
+                boxShadow:
+                  "0 8px 25px rgba(255, 107, 107, 0.4), 0 4px 10px rgba(78, 205, 196, 0.3)",
+                width: { xs: "100%", sm: "auto" },
+                whiteSpace: "normal",
+                flexShrink: 0,
+                minWidth: { xs: "auto", sm: "auto" },
+                position: "relative",
+                overflow: "hidden",
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  left: "-100%",
+                  width: "100%",
+                  height: "100%",
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)",
+                  transition: "left 0.5s",
+                },
+                "&:hover::before": {
+                  left: "100%",
+                },
+                "& .MuiButton-startIcon": {
+                  marginRight: { xs: 0.75, sm: 1 },
+                  marginLeft: 0,
+                  transition: "transform 0.3s",
+                },
                 "&:hover": {
-                  background: "linear-gradient(45deg, #FF5252, #26A69A)",
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 12px 35px rgba(255, 107, 107, 0.4)",
+                  background:
+                    "linear-gradient(135deg, #FF5252 0%, #26A69A 100%)",
+                  transform: { xs: "none", sm: "translateY(-3px) scale(1.02)" },
+                  boxShadow:
+                    "0 12px 40px rgba(255, 107, 107, 0.5), 0 6px 15px rgba(78, 205, 196, 0.4)",
+                  "& .MuiButton-startIcon": {
+                    transform: "rotate(90deg)",
+                  },
                 },
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
@@ -677,74 +832,199 @@ const Projects = () => {
 
         {/* Content Section */}
         <Box
-          sx={{ p: { xs: 1, sm: 2, md: 3 }, minHeight: "calc(100vh - 200px)" }}
+          sx={{
+            p: { xs: 1.5, sm: 2.5, md: 4 },
+            minHeight: "calc(100vh - 200px)",
+            width: "100%",
+            maxWidth: "100%",
+            overflowX: "hidden",
+            boxSizing: "border-box",
+            background:
+              "linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(245, 247, 250, 0.9) 100%)",
+          }}
         >
           {/* Status Tabs */}
-          <Box mb={3}>
-            <Tabs
-              value={activeTab}
-              onChange={handleTabChange}
-              variant="scrollable"
-              scrollButtons="auto"
-              sx={{
-                "& .MuiTabs-indicator": {
+          <Box
+            mb={{ xs: 2, sm: 3 }}
+            sx={{
+              width: "100%",
+              maxWidth: "100%",
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            {/* Left Arrow Button - Only visible on small screens */}
+            {isSmallScreen && (
+              <IconButton
+                onClick={scrollLeft}
+                disabled={!canScrollLeft}
+                sx={{
+                  display: { xs: "flex", sm: "none" },
+                  position: "absolute",
+                  left: 4,
+                  zIndex: 10,
                   backgroundColor: "#667eea",
-                  height: 3,
-                  borderRadius: "3px 3px 0 0",
-                },
-                "& .MuiTab-root": {
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "0.95rem",
-                  minHeight: 48,
-                  color: "#666",
-                  "&.Mui-selected": {
-                    color: "#667eea",
-                  },
+                  color: "white",
+                  boxShadow: "0 2px 8px rgba(102, 126, 234, 0.4)",
+                  width: 36,
+                  height: 36,
                   "&:hover": {
-                    color: "#667eea",
-                    backgroundColor: "rgba(102, 126, 234, 0.04)",
+                    backgroundColor: "#5a6fd8",
+                    boxShadow: "0 4px 12px rgba(102, 126, 234, 0.5)",
                   },
+                  "&.Mui-disabled": {
+                    backgroundColor: "rgba(102, 126, 234, 0.3)",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  },
+                }}
+              >
+                <ChevronLeftIcon />
+              </IconButton>
+            )}
+
+            {/* Tabs Container */}
+            <Box
+              ref={tabsContainerRef}
+              onScroll={checkScrollButtons}
+              sx={{
+                width: "100%",
+                overflowX: "auto",
+                overflowY: "hidden",
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+                "&::-webkit-scrollbar": {
+                  display: "none",
                 },
+                pl: { xs: canScrollLeft ? 5 : 0, sm: 0 },
+                pr: { xs: canScrollRight ? 5 : 0, sm: 0 },
               }}
             >
-              {statusTabs.map((tab, index) => (
-                <Tab
-                  key={tab.value}
-                  label={
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <span>{tab.label}</span>
-                      <Chip
-                        label={tab.count}
-                        size="small"
-                        sx={{
-                          backgroundColor:
-                            activeTab === index ? "#667eea" : "#e0e0e0",
-                          color: activeTab === index ? "white" : "#666",
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                          height: 20,
-                          minWidth: 20,
-                        }}
-                      />
-                    </Box>
-                  }
-                />
-              ))}
-            </Tabs>
+              <Tabs
+                value={activeTab}
+                onChange={handleTabChange}
+                variant="scrollable"
+                scrollButtons={false}
+                sx={{
+                  width: "100%",
+                  maxWidth: "100%",
+                  backgroundColor: "rgba(255, 255, 255, 0.6)",
+                  borderRadius: 3,
+                  px: 1,
+                  "& .MuiTabs-indicator": {
+                    backgroundColor: "#667eea",
+                    height: 4,
+                    borderRadius: "4px 4px 0 0",
+                    boxShadow: "0 -2px 8px rgba(102, 126, 234, 0.4)",
+                  },
+                  "& .MuiTab-root": {
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: { xs: "0.8rem", sm: "0.95rem" },
+                    minHeight: { xs: 44, sm: 52 },
+                    color: "#666",
+                    px: { xs: 1.5, sm: 2.5 },
+                    py: 1.5,
+                    minWidth: { xs: "auto", sm: 120 },
+                    borderRadius: 2,
+                    mx: 0.5,
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    "&.Mui-selected": {
+                      color: "#667eea",
+                      backgroundColor: "rgba(102, 126, 234, 0.1)",
+                      fontWeight: 700,
+                    },
+                    "&:hover": {
+                      color: "#667eea",
+                      backgroundColor: "rgba(102, 126, 234, 0.08)",
+                      transform: "translateY(-2px)",
+                    },
+                  },
+                }}
+              >
+                {statusTabs.map((tab, index) => (
+                  <Tab
+                    key={tab.value}
+                    label={
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <span>{tab.label}</span>
+                        <Chip
+                          label={tab.count}
+                          size="small"
+                          sx={{
+                            backgroundColor:
+                              activeTab === index
+                                ? "rgba(255, 255, 255, 0.3)"
+                                : "rgba(102, 126, 234, 0.15)",
+                            color: activeTab === index ? "white" : "#667eea",
+                            fontWeight: 700,
+                            fontSize: { xs: "0.7rem", sm: "0.8rem" },
+                            height: { xs: 20, sm: 24 },
+                            minWidth: { xs: 20, sm: 24 },
+                            borderRadius: 2,
+                            boxShadow:
+                              activeTab === index
+                                ? "0 2px 6px rgba(255, 255, 255, 0.3)"
+                                : "0 1px 3px rgba(102, 126, 234, 0.2)",
+                            transition: "all 0.3s ease",
+                          }}
+                        />
+                      </Box>
+                    }
+                  />
+                ))}
+              </Tabs>
+            </Box>
+
+            {/* Right Arrow Button - Only visible on small screens */}
+            {isSmallScreen && (
+              <IconButton
+                onClick={scrollRight}
+                disabled={!canScrollRight}
+                sx={{
+                  display: { xs: "flex", sm: "none" },
+                  position: "absolute",
+                  right: 4,
+                  zIndex: 10,
+                  backgroundColor: "#667eea",
+                  color: "white",
+                  boxShadow: "0 2px 8px rgba(102, 126, 234, 0.4)",
+                  width: 36,
+                  height: 36,
+                  "&:hover": {
+                    backgroundColor: "#5a6fd8",
+                    boxShadow: "0 4px 12px rgba(102, 126, 234, 0.5)",
+                  },
+                  "&.Mui-disabled": {
+                    backgroundColor: "rgba(102, 126, 234, 0.3)",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  },
+                }}
+              >
+                <ChevronRightIcon />
+              </IconButton>
+            )}
           </Box>
           {/* Projects Table */}
           <TableContainer
+            component={Paper}
+            elevation={0}
             sx={{
-              borderRadius: 3,
-              overflowX: "auto", // Enable horizontal scrolling on mobile
-              backgroundColor: "rgba(255, 255, 255, 0.8)",
-              border: "1px solid rgba(102, 126, 234, 0.1)",
+              borderRadius: { xs: 3, sm: 4 },
+              overflowX: "auto",
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              border: "1px solid rgba(102, 126, 234, 0.15)",
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+              boxShadow:
+                "0 8px 32px rgba(102, 126, 234, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)",
+              backdropFilter: "blur(10px)",
               "&::-webkit-scrollbar": {
-                height: 8,
+                height: { xs: 6, sm: 8 },
               },
               "&::-webkit-scrollbar-track": {
-                backgroundColor: "rgba(102, 126, 234, 0.1)",
+                backgroundColor: "rgba(102, 126, 234, 0.05)",
                 borderRadius: 4,
               },
               "&::-webkit-scrollbar-thumb": {
@@ -756,55 +1036,197 @@ const Projects = () => {
               },
             }}
           >
-            <Table sx={{ minWidth: 800 }}>
+            <Table
+              sx={{
+                minWidth: { xs: 300, sm: 800 },
+                width: "100%",
+                tableLayout: { xs: "auto", sm: "fixed" },
+              }}
+            >
               {/* Set minimum width for table */}
               <TableHead>
                 <TableRow
                   sx={{
                     background:
                       "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    boxShadow: "0 2px 8px rgba(102, 126, 234, 0.2)",
                     "& .MuiTableCell-head": {
                       color: "white",
-                      fontWeight: 700,
-                      fontSize: { xs: "0.8rem", sm: "0.95rem" }, // Smaller font on mobile
+                      fontWeight: 800,
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
                       textTransform: "uppercase",
-                      letterSpacing: "0.5px",
+                      letterSpacing: "1px",
                       border: "none",
-                      whiteSpace: "nowrap", // Prevent text wrapping in headers
+                      whiteSpace: "nowrap",
+                      py: { xs: 1.5, sm: 2 },
+                      textShadow: "0 1px 2px rgba(0, 0, 0, 0.2)",
                     },
                   }}
                 >
                   <TableCell>No</TableCell>
                   <TableCell>Project Name</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Start Date</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Progress</TableCell>
-                  <TableCell>Budget</TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                    Location
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                    Start Date
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                    Status
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                    Progress
+                  </TableCell>
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
+                    Budget
+                  </TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                      <CircularProgress sx={{ color: "#667eea" }} />
+                    <TableCell
+                      colSpan={isSmallScreen ? 3 : 8}
+                      align="center"
+                      sx={{ py: 8 }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <CircularProgress
+                          sx={{ color: "#667eea" }}
+                          size={48}
+                          thickness={4}
+                        />
+                        <Typography
+                          variant="body1"
+                          sx={{ color: "#667eea", fontWeight: 600 }}
+                        >
+                          Loading projects...
+                        </Typography>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                      <Typography color="error" variant="h6">
-                        {error}
-                      </Typography>
+                    <TableCell
+                      colSpan={isSmallScreen ? 3 : 8}
+                      align="center"
+                      sx={{ py: 6 }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <Alert
+                          severity="error"
+                          sx={{
+                            width: "100%",
+                            maxWidth: 500,
+                            borderRadius: 3,
+                            boxShadow: "0 4px 12px rgba(211, 47, 47, 0.2)",
+                          }}
+                        >
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                            {error}
+                          </Typography>
+                        </Alert>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ) : projects.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                      <Typography variant="h6" color="text.secondary">
-                        No projects found.
-                      </Typography>
+                    <TableCell
+                      colSpan={isSmallScreen ? 3 : 8}
+                      align="center"
+                      sx={{ py: 8 }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 80,
+                            height: 80,
+                            borderRadius: "50%",
+                            background:
+                              "linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            mb: 1,
+                          }}
+                        >
+                          <ProjectIcon
+                            sx={{
+                              fontSize: 40,
+                              color: "#667eea",
+                              opacity: 0.6,
+                            }}
+                          />
+                        </Box>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            color: "#2c3e50",
+                            fontWeight: 700,
+                            fontSize: { xs: "1rem", sm: "1.25rem" },
+                          }}
+                        >
+                          No projects found
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#7f8c8d",
+                            fontSize: { xs: "0.875rem", sm: "1rem" },
+                            maxWidth: 400,
+                            textAlign: "center",
+                          }}
+                        >
+                          Get started by creating your first project
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          startIcon={<AddIcon />}
+                          onClick={() => navigate("/projects/create")}
+                          sx={{
+                            mt: 1,
+                            background:
+                              "linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%)",
+                            borderRadius: 3,
+                            px: 3,
+                            py: 1.5,
+                            fontWeight: 600,
+                            textTransform: "none",
+                            boxShadow: "0 4px 15px rgba(255, 107, 107, 0.3)",
+                            "&:hover": {
+                              background:
+                                "linear-gradient(135deg, #FF5252 0%, #26A69A 100%)",
+                              transform: "translateY(-2px)",
+                              boxShadow: "0 6px 20px rgba(255, 107, 107, 0.4)",
+                            },
+                            transition: "all 0.3s ease",
+                          }}
+                        >
+                          Create New Project
+                        </Button>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -812,84 +1234,143 @@ const Projects = () => {
                     <TableRow
                       key={project.id}
                       sx={{
+                        borderLeft: "4px solid transparent",
                         "&:nth-of-type(even)": {
-                          backgroundColor: "rgba(102, 126, 234, 0.02)",
+                          backgroundColor: "rgba(102, 126, 234, 0.03)",
                         },
                         "&:hover": {
-                          backgroundColor: "rgba(102, 126, 234, 0.08)",
-                          transform: { xs: "none", sm: "scale(1.01)" }, // No transform on mobile
+                          backgroundColor: "rgba(102, 126, 234, 0.1)",
+                          borderLeft: "4px solid #667eea",
+                          transform: { xs: "none", sm: "translateX(4px)" },
+                          boxShadow: "0 4px 12px rgba(102, 126, 234, 0.15)",
                         },
-                        transition: "all 0.2s ease",
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                         cursor: "pointer",
                         "& .MuiTableCell-root": {
-                          fontSize: { xs: "0.75rem", sm: "0.875rem" }, // Smaller font on mobile
-                          padding: { xs: "8px 4px", sm: "16px" }, // Less padding on mobile
+                          fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                          padding: { xs: "12px 8px", sm: "18px 16px" },
+                          borderBottom: "1px solid rgba(102, 126, 234, 0.08)",
                         },
                       }}
                     >
-                      <TableCell sx={{ fontWeight: 600, color: "#667eea" }}>
-                        {page * rowsPerPage + idx + 1}
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: "#667eea",
+                          fontSize: { xs: "0.875rem", sm: "1rem" },
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: { xs: 28, sm: 32 },
+                            height: { xs: 28, sm: 32 },
+                            borderRadius: "50%",
+                            backgroundColor: "rgba(102, 126, 234, 0.1)",
+                            color: "#667eea",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {page * rowsPerPage + idx + 1}
+                        </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        sx={{
+                          maxWidth: { xs: 150, sm: "none" },
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
                         <Typography
                           variant="body2"
-                          fontWeight="600"
-                          sx={{ color: "#2c3e50" }}
+                          fontWeight="700"
+                          sx={{
+                            color: "#2c3e50",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: { xs: "nowrap", sm: "normal" },
+                            maxWidth: { xs: 150, sm: "100%" },
+                            fontSize: { xs: "0.875rem", sm: "0.95rem" },
+                            "&:hover": {
+                              color: "#667eea",
+                            },
+                            transition: "color 0.2s ease",
+                          }}
                         >
                           {project.name}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        sx={{ display: { xs: "none", sm: "table-cell" } }}
+                      >
                         <Box display="flex" alignItems="center" gap={1}>
                           <LocationIcon
                             sx={{ color: "#e74c3c", fontSize: 18 }}
                           />
-                          <Typography variant="body2" sx={{ color: "#7f8c8d" }}>
+                          <Typography variant="body2" sx={{ color: "#000" }}>
                             {project.location_name}
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        sx={{ display: { xs: "none", sm: "table-cell" } }}
+                      >
                         <Box display="flex" alignItems="center" gap={1}>
                           <CalendarIcon
                             sx={{ color: "#3498db", fontSize: 18 }}
                           />
-                          <Typography variant="body2" sx={{ color: "#7f8c8d" }}>
+                          <Typography variant="body2" sx={{ color: "#000" }}>
                             {formatDate(project.start_date)}
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        sx={{ display: { xs: "none", sm: "table-cell" } }}
+                      >
                         <Chip
                           label={project.status}
                           color={getStatusColor(project.status)}
                           size="small"
                           sx={{
                             textTransform: "capitalize",
-                            fontWeight: 600,
-                            borderRadius: 2,
+                            fontWeight: 700,
+                            borderRadius: 3,
+                            fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                            height: { xs: 24, sm: 28 },
+                            boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+                            "&:hover": {
+                              transform: "scale(1.05)",
+                              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.15)",
+                            },
+                            transition: "all 0.2s ease",
                           }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        sx={{ display: { xs: "none", sm: "table-cell" } }}
+                      >
                         <Box display="flex" alignItems="center" gap={1}>
                           <ProjectIcon
                             sx={{ color: "#9b59b6", fontSize: 18 }}
                           />
                           <Typography
                             variant="body2"
-                            sx={{ color: "#7f8c8d", fontWeight: 600 }}
+                            sx={{ color: "#000", fontWeight: 600 }}
                           >
                             {project.progress_percent || 0}%
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        sx={{ display: { xs: "none", sm: "table-cell" } }}
+                      >
                         <Box display="flex" alignItems="center" gap={1}>
                           <MoneyIcon sx={{ color: "#27ae60", fontSize: 18 }} />
                           <Typography
                             variant="body2"
-                            sx={{ color: "#7f8c8d", fontWeight: 600 }}
+                            sx={{ color: "#000", fontWeight: 600 }}
                           >
                             {project.currency}{" "}
                             {project.budget_estimate?.toLocaleString() || 0}
@@ -897,56 +1378,87 @@ const Projects = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Box display="flex" gap={0.5}>
-                          <Tooltip title="View Project Details" arrow>
+                        <Box display="flex" gap={{ xs: 0.5, sm: 1 }}>
+                          <Tooltip
+                            title="View Project Details"
+                            arrow
+                            placement="top"
+                          >
                             <IconButton
                               size="small"
                               onClick={() => handleViewProject(project)}
                               sx={{
                                 color: "#27ae60",
-                                backgroundColor: "rgba(39, 174, 96, 0.1)",
+                                backgroundColor: "rgba(39, 174, 96, 0.12)",
+                                padding: { xs: 0.75, sm: 1 },
+                                boxShadow: "0 2px 8px rgba(39, 174, 96, 0.2)",
                                 "&:hover": {
-                                  backgroundColor: "rgba(39, 174, 96, 0.2)",
-                                  transform: "scale(1.1)",
+                                  backgroundColor: "#27ae60",
+                                  color: "white",
+                                  transform: {
+                                    xs: "none",
+                                    sm: "scale(1.15) translateY(-2px)",
+                                  },
+                                  boxShadow:
+                                    "0 4px 12px rgba(39, 174, 96, 0.4)",
                                 },
-                                transition: "all 0.2s ease",
-                                borderRadius: 2,
+                                transition:
+                                  "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                borderRadius: 2.5,
                               }}
                             >
                               <ViewIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Edit Project" arrow>
+                          <Tooltip title="Edit Project" arrow placement="top">
                             <IconButton
                               size="small"
                               onClick={() => handleEditProject(project)}
                               sx={{
                                 color: "#3498db",
-                                backgroundColor: "rgba(52, 152, 219, 0.1)",
+                                backgroundColor: "rgba(52, 152, 219, 0.12)",
+                                padding: { xs: 0.75, sm: 1 },
+                                boxShadow: "0 2px 8px rgba(52, 152, 219, 0.2)",
                                 "&:hover": {
-                                  backgroundColor: "rgba(52, 152, 219, 0.2)",
-                                  transform: "scale(1.1)",
+                                  backgroundColor: "#3498db",
+                                  color: "white",
+                                  transform: {
+                                    xs: "none",
+                                    sm: "scale(1.15) translateY(-2px)",
+                                  },
+                                  boxShadow:
+                                    "0 4px 12px rgba(52, 152, 219, 0.4)",
                                 },
-                                transition: "all 0.2s ease",
-                                borderRadius: 2,
+                                transition:
+                                  "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                borderRadius: 2.5,
                               }}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete Project" arrow>
+                          <Tooltip title="Delete Project" arrow placement="top">
                             <IconButton
                               size="small"
                               onClick={() => handleDeleteProject(project)}
                               sx={{
                                 color: "#e74c3c",
-                                backgroundColor: "rgba(231, 76, 60, 0.1)",
+                                backgroundColor: "rgba(231, 76, 60, 0.12)",
+                                padding: { xs: 0.75, sm: 1 },
+                                boxShadow: "0 2px 8px rgba(231, 76, 60, 0.2)",
                                 "&:hover": {
-                                  backgroundColor: "rgba(231, 76, 60, 0.2)",
-                                  transform: "scale(1.1)",
+                                  backgroundColor: "#e74c3c",
+                                  color: "white",
+                                  transform: {
+                                    xs: "none",
+                                    sm: "scale(1.15) translateY(-2px)",
+                                  },
+                                  boxShadow:
+                                    "0 4px 12px rgba(231, 76, 60, 0.4)",
                                 },
-                                transition: "all 0.2s ease",
-                                borderRadius: 2,
+                                transition:
+                                  "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                borderRadius: 2.5,
                               }}
                             >
                               <DeleteIcon fontSize="small" />
@@ -968,18 +1480,46 @@ const Projects = () => {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
+            labelRowsPerPage={isSmallScreen ? "Rows:" : "Rows per page:"}
             sx={{
-              backgroundColor: "rgba(255, 255, 255, 0.8)",
-              borderTop: "1px solid rgba(102, 126, 234, 0.1)",
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              borderTop: "1px solid rgba(102, 126, 234, 0.15)",
+              borderRadius: "0 0 16px 16px",
+              boxShadow: "0 -2px 8px rgba(102, 126, 234, 0.08)",
               "& .MuiTablePagination-toolbar": {
                 color: "#667eea",
                 fontWeight: 600,
+                flexWrap: { xs: "wrap", sm: "nowrap" },
+                px: { xs: 1.5, sm: 2.5 },
+                py: 1,
+                fontSize: { xs: "0.8rem", sm: "0.9rem" },
               },
               "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
                 {
                   color: "#2c3e50",
                   fontWeight: 600,
+                  fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                  mr: { xs: 1.5, sm: 2.5 },
                 },
+              "& .MuiTablePagination-select": {
+                fontSize: { xs: "0.8rem", sm: "0.9rem" },
+                fontWeight: 600,
+                borderRadius: 2,
+                "&:hover": {
+                  backgroundColor: "rgba(102, 126, 234, 0.08)",
+                },
+              },
+              "& .MuiTablePagination-actions": {
+                ml: { xs: 1, sm: 2.5 },
+                "& .MuiIconButton-root": {
+                  color: "#667eea",
+                  "&:hover": {
+                    backgroundColor: "rgba(102, 126, 234, 0.1)",
+                    transform: "scale(1.1)",
+                  },
+                  transition: "all 0.2s ease",
+                },
+              },
             }}
           />
         </Box>
@@ -1076,11 +1616,15 @@ const Projects = () => {
                 sx={{
                   fontWeight: 800,
                   textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                  color: "#000",
                 }}
               >
                 {openViewDialog ? "Project Details" : "Create New Project"}
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+              <Typography
+                variant="body2"
+                sx={{ opacity: 0.9, mt: 0.5, color: "#000" }}
+              >
                 {openViewDialog
                   ? "View project information"
                   : "Add a new project to the system"}
@@ -1600,7 +2144,10 @@ const Projects = () => {
                         >
                           Created By
                         </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography
+                          variant="body1"
+                          sx={{ fontWeight: 500, color: "#000" }}
+                        >
                           {selectedEvent.creator?.name || "Unknown"}
                         </Typography>
                       </Box>
