@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, lazy } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import { Box, CircularProgress, useMediaQuery, useTheme } from "@mui/material";
 import Navbar from "./Navbar";
@@ -7,7 +7,6 @@ import NotFound from "../Pages/NotFound";
 import Projects from "./Projects/Projects";
 import ProjectView from "./Projects/ProjectView";
 import ProjectEdit from "./Projects/ProjectEdit";
-import ProjectCreate from "./Projects/ProjectCreate";
 import Tasks from "./Tasks/Tasks";
 import TaskView from "./Tasks/TaskView";
 import Materials from "./Materials/Materials";
@@ -20,6 +19,9 @@ import ConstructionMap from "../ConstructionMap";
 import Documents from "./Documents/Documents";
 import UsersTable from "./Users/UsersTable";
 import Analytics from "./Analytics/Analytics";
+
+// Lazy load heavy components
+const ProjectCreate = lazy(() => import("./Projects/ProjectCreate"));
 
 function PageRoutes() {
   const theme = useTheme();
@@ -74,12 +76,26 @@ function PageRoutes() {
             <CircularProgress />
           </Box>
         ) : (
-          <Routes>
-            <Route path="home" element={<Navigate to="/analytics" replace />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="projects/create" element={<ProjectCreate />} />
-            <Route path="projects/:id" element={<ProjectView />} />
-            <Route path="projects/:id/edit" element={<ProjectEdit />} />
+          <Suspense
+            fallback={
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "50vh",
+                }}
+              >
+                <CircularProgress />
+              </Box>
+            }
+          >
+            <Routes>
+              <Route path="home" element={<Navigate to="/analytics" replace />} />
+              <Route path="projects" element={<Projects />} />
+              <Route path="projects/create" element={<ProjectCreate />} />
+              <Route path="projects/:id" element={<ProjectView />} />
+              <Route path="projects/:id/edit" element={<ProjectEdit />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="tasks/:id" element={<TaskView />} />
             <Route path="materials" element={<Materials />} />
@@ -94,7 +110,8 @@ function PageRoutes() {
             <Route path="users" element={<UsersTable />} />
             <Route path="settings" element={<Settings user={user} />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </Suspense>
         )}
       </Box>
     </Box>

@@ -56,10 +56,10 @@ const ProjectCreate = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [engineers, setEngineers] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [projectForm, setProjectForm] = useState({
     name: "",
     description: "",
@@ -79,7 +79,7 @@ const ProjectCreate = () => {
     progress_percent: 0,
     notes: "",
     floor_size: "",
-    construction_type: "building",
+    category: "",
   });
   const [blueprintFiles, setBlueprintFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -97,6 +97,7 @@ const ProjectCreate = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationFromMap, setLocationFromMap] = useState(false);
 
   const statusOptions = [
     { value: "planning", label: "Planning", color: "#ff9800" },
@@ -114,7 +115,70 @@ const ProjectCreate = () => {
   ];
 
   useEffect(() => {
+    // Fetch data in background without blocking render
     fetchEngineers();
+    fetchCategories();
+  }, []);
+
+  // Defer map initialization to avoid blocking initial render
+  useEffect(() => {
+    // Use requestAnimationFrame to defer map initialization until after component renders
+    // This ensures the form renders immediately while map loads in background
+    const initMap = () => {
+      if (!mapInstance.current && mapRef.current) {
+        try {
+          const osmLayer = new TileLayer({
+            source: new OSM(),
+          });
+
+          const vectorSource = new VectorSource();
+          const vectorLayer = new VectorLayer({
+            source: vectorSource,
+          });
+          vectorLayerRef.current = vectorLayer;
+
+          const map = new Map({
+            target: mapRef.current,
+            layers: [osmLayer, vectorLayer],
+            view: new View({
+              center: fromLonLat([36.7758, -1.2921]), // Default to Nairobi, Kenya
+              zoom: 10,
+            }),
+            controls: defaultControls(),
+          });
+
+          // Handle map click
+          map.on("click", async (event) => {
+            const [lon, lat] = toLonLat(event.coordinate);
+            handleInputChange("latitude", lat);
+            handleInputChange("longitude", lon);
+            updateMarker(lon, lat);
+            // Reverse geocode to get location name
+            await reverseGeocode(lat, lon);
+          });
+
+          mapInstance.current = map;
+          setMapInitialized(true);
+        } catch (error) {
+          console.error("Error initializing map:", error);
+        }
+      }
+    };
+
+    // Use double requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        // Additional small delay to prioritize form rendering
+        setTimeout(initMap, 50);
+      });
+    });
+
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.setTarget(undefined);
+        mapInstance.current = null;
+      }
+    };
   }, []);
 
   const fetchEngineers = async () => {
@@ -131,6 +195,23 @@ const ProjectCreate = () => {
       }
     } catch (err) {
       console.error("Error fetching engineers:", err);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/projects/categories", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setCategories(result.data);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
     }
   };
 
@@ -238,6 +319,7 @@ const ProjectCreate = () => {
       handleInputChange("longitude", lon);
       if (place.display_name) {
         handleInputChange("location_name", place.display_name);
+        setLocationFromMap(true); // Mark that location was set from map
       }
 
       // Center map on selected place
@@ -247,6 +329,27 @@ const ProjectCreate = () => {
         view.setZoom(15);
         updateMarker(lon, lat);
       }
+    }
+  };
+
+  // Reverse geocode to get location name from coordinates
+  const reverseGeocode = async (lat, lon) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`,
+        {
+          headers: {
+            "User-Agent": "OwinoInteriors/1.0",
+          },
+        }
+      );
+      const data = await response.json();
+      if (data.display_name) {
+        handleInputChange("location_name", data.display_name);
+        setLocationFromMap(true);
+      }
+    } catch (error) {
+      console.error("Error reverse geocoding:", error);
     }
   };
 
@@ -265,7 +368,7 @@ const ProjectCreate = () => {
   };
 
   // Get current location
-  const getCurrentLocation = () => {
+  const getCurrentLocation = async () => {
     if (!navigator.geolocation) {
       Swal.fire({
         icon: "error",
@@ -277,7 +380,7 @@ const ProjectCreate = () => {
 
     setIsGettingLocation(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const { latitude, longitude } = position.coords;
         const location = { latitude, longitude };
 
@@ -286,6 +389,9 @@ const ProjectCreate = () => {
 
         handleInputChange("latitude", latitude);
         handleInputChange("longitude", longitude);
+
+        // Reverse geocode to get location name
+        await reverseGeocode(latitude, longitude);
 
         // Center map on current location
         if (mapInstance.current) {
@@ -338,48 +444,6 @@ const ProjectCreate = () => {
     vectorSource.addFeature(feature);
   };
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapInstance.current && mapRef.current) {
-      const osmLayer = new TileLayer({
-        source: new OSM(),
-      });
-
-      const vectorSource = new VectorSource();
-      const vectorLayer = new VectorLayer({
-        source: vectorSource,
-      });
-      vectorLayerRef.current = vectorLayer;
-
-      const map = new Map({
-        target: mapRef.current,
-        layers: [osmLayer, vectorLayer],
-        view: new View({
-          center: fromLonLat([36.7758, -1.2921]), // Default to Nairobi, Kenya
-          zoom: 10,
-        }),
-        controls: defaultControls(),
-      });
-
-      // Handle map click
-      map.on("click", (event) => {
-        const [lon, lat] = toLonLat(event.coordinate);
-        handleInputChange("latitude", lat);
-        handleInputChange("longitude", lon);
-        updateMarker(lon, lat);
-      });
-
-      mapInstance.current = map;
-      setMapInitialized(true);
-    }
-
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.setTarget(undefined);
-        mapInstance.current = null;
-      }
-    };
-  }, []);
 
   // Get current location on map initialization (if not already set)
   useEffect(() => {
@@ -520,19 +584,6 @@ const ProjectCreate = () => {
       projectForm.engineer_in_charge
     );
   };
-
-  if (loading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <CircularProgress size={60} />
-      </Box>
-    );
-  }
 
   return (
     <Box
@@ -692,13 +743,30 @@ const ProjectCreate = () => {
                       fullWidth
                       label="Location"
                       value={projectForm.location_name}
-                      onChange={(e) =>
-                        handleInputChange("location_name", e.target.value)
-                      }
+                      onChange={(e) => {
+                        handleInputChange("location_name", e.target.value);
+                        setLocationFromMap(false); // User manually edited, clear map flag
+                      }}
                       required
+                      helperText={
+                        locationFromMap
+                          ? "Location auto-filled from map. You can edit manually if needed."
+                          : "Enter location manually or use the map search/click below to auto-fill"
+                      }
+                      InputProps={{
+                        endAdornment: locationFromMap ? (
+                          <InputAdornment position="end">
+                            <LocationOn
+                              sx={{ color: "#667eea", fontSize: 20 }}
+                            />
+                          </InputAdornment>
+                        ) : null,
+                      }}
                       sx={{
                         "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
+                          backgroundColor: locationFromMap
+                            ? "rgba(102, 126, 234, 0.05)"
+                            : "transparent",
                         },
                       }}
                     />
@@ -923,6 +991,10 @@ const ProjectCreate = () => {
                             overflow: "hidden",
                             border: "1px solid #e0e0e0",
                             position: "relative",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: "#f5f5f5",
                             "& .ol-zoom": {
                               top: "0.5em",
                               left: "0.5em",
@@ -936,7 +1008,26 @@ const ProjectCreate = () => {
                               lineHeight: "32px",
                             },
                           }}
-                        />
+                        >
+                          {!mapInitialized && (
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f5f5f5",
+                                zIndex: 1,
+                              }}
+                            >
+                              <CircularProgress size={40} />
+                            </Box>
+                          )}
+                        </Box>
                       </CardContent>
                     </Card>
                   </Grid>
@@ -1332,21 +1423,22 @@ const ProjectCreate = () => {
                         },
                       }}
                     >
-                      <InputLabel>Construction Type</InputLabel>
+                      <InputLabel>Project Category</InputLabel>
                       <Select
-                        value={projectForm.construction_type}
+                        value={projectForm.category}
                         onChange={(e) =>
-                          handleInputChange("construction_type", e.target.value)
+                          handleInputChange("category", e.target.value)
                         }
-                        label="Construction Type"
+                        label="Project Category"
                       >
-                        <MenuItem value="building">Building</MenuItem>
-                        <MenuItem value="infrastructure">
-                          Infrastructure
+                        <MenuItem value="">
+                          <em>None</em>
                         </MenuItem>
-                        <MenuItem value="industrial">Industrial</MenuItem>
-                        <MenuItem value="specialized">Specialized</MenuItem>
-                        <MenuItem value="other">Other</MenuItem>
+                        {categories.map((cat) => (
+                          <MenuItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
                   </Grid>

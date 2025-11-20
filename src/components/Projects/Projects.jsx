@@ -1066,19 +1066,10 @@ const Projects = () => {
                   <TableCell>No</TableCell>
                   <TableCell>Project Name</TableCell>
                   <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
-                    Location
-                  </TableCell>
-                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
-                    Start Date
-                  </TableCell>
-                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
                     Status
                   </TableCell>
-                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
-                    Progress
-                  </TableCell>
-                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
-                    Budget
+                  <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                    Category
                   </TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -1087,7 +1078,7 @@ const Projects = () => {
                 {loading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isSmallScreen ? 3 : 8}
+                      colSpan={isSmallScreen ? 3 : 5}
                       align="center"
                       sx={{ py: 8 }}
                     >
@@ -1116,7 +1107,7 @@ const Projects = () => {
                 ) : error ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isSmallScreen ? 3 : 8}
+                      colSpan={isSmallScreen ? 3 : 5}
                       align="center"
                       sx={{ py: 6 }}
                     >
@@ -1147,7 +1138,7 @@ const Projects = () => {
                 ) : projects.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={isSmallScreen ? 3 : 8}
+                      colSpan={isSmallScreen ? 3 : 5}
                       align="center"
                       sx={{ py: 8 }}
                     >
@@ -1302,33 +1293,7 @@ const Projects = () => {
                           {project.name}
                         </Typography>
                       </TableCell>
-                      <TableCell
-                        sx={{ display: { xs: "none", sm: "table-cell" } }}
-                      >
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <LocationIcon
-                            sx={{ color: "#e74c3c", fontSize: 18 }}
-                          />
-                          <Typography variant="body2" sx={{ color: "#000" }}>
-                            {project.location_name}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell
-                        sx={{ display: { xs: "none", sm: "table-cell" } }}
-                      >
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <CalendarIcon
-                            sx={{ color: "#3498db", fontSize: 18 }}
-                          />
-                          <Typography variant="body2" sx={{ color: "#000" }}>
-                            {formatDate(project.start_date)}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell
-                        sx={{ display: { xs: "none", sm: "table-cell" } }}
-                      >
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>
                         <Chip
                           label={project.status}
                           color={getStatusColor(project.status)}
@@ -1348,34 +1313,34 @@ const Projects = () => {
                           }}
                         />
                       </TableCell>
-                      <TableCell
-                        sx={{ display: { xs: "none", sm: "table-cell" } }}
-                      >
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <ProjectIcon
-                            sx={{ color: "#9b59b6", fontSize: 18 }}
+                      <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                        {project.category ? (
+                          <Chip
+                            label={project.category
+                              .split("_")
+                              .map(
+                                (word) =>
+                                  word.charAt(0).toUpperCase() + word.slice(1)
+                              )
+                              .join(" ")}
+                            size="small"
+                            sx={{
+                              backgroundColor: "rgba(102, 126, 234, 0.1)",
+                              color: "#667eea",
+                              fontWeight: 600,
+                              borderRadius: 2,
+                              fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                              height: { xs: 24, sm: 28 },
+                            }}
                           />
+                        ) : (
                           <Typography
                             variant="body2"
-                            sx={{ color: "#000", fontWeight: 600 }}
+                            sx={{ color: "#999", fontStyle: "italic" }}
                           >
-                            {project.progress_percent || 0}%
+                            N/A
                           </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell
-                        sx={{ display: { xs: "none", sm: "table-cell" } }}
-                      >
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <MoneyIcon sx={{ color: "#27ae60", fontSize: 18 }} />
-                          <Typography
-                            variant="body2"
-                            sx={{ color: "#000", fontWeight: 600 }}
-                          >
-                            {project.currency}{" "}
-                            {project.budget_estimate?.toLocaleString() || 0}
-                          </Typography>
-                        </Box>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Box display="flex" gap={{ xs: 0.5, sm: 1 }}>

@@ -22,7 +22,9 @@ import {
   IconButton,
   LinearProgress,
   Tooltip,
+  useMediaQuery,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
@@ -46,6 +48,8 @@ import Swal from "sweetalert2";
 const ProjectEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,8 +84,9 @@ const ProjectEdit = () => {
     progress_percent: 0,
     notes: "",
     floor_size: "",
-    construction_type: "building",
+    category: "",
   });
+  const [categories, setCategories] = useState([]);
   const [blueprintUrls, setBlueprintUrls] = useState([]);
   const [blueprintFiles, setBlueprintFiles] = useState([]);
   const [blueprintPreviews, setBlueprintPreviews] = useState([]);
@@ -98,7 +103,25 @@ const ProjectEdit = () => {
 
   useEffect(() => {
     fetchProject();
+    fetchCategories();
   }, [id]);
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/projects/categories", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setCategories(result.data);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -155,7 +178,7 @@ const ProjectEdit = () => {
           progress_percent: result.data.progress_percent || 0,
           notes: result.data.notes || "",
           floor_size: result.data.floor_size || "",
-          construction_type: result.data.construction_type || "building",
+          category: result.data.category || "",
         });
         setProjectFiles(result.data.document_urls || []);
         const blueprints = Array.isArray(result.data.blueprint_url)
@@ -294,15 +317,15 @@ const ProjectEdit = () => {
     const type = getFileType(fileName);
     switch (type) {
       case "image":
-        return <ImageIcon sx={{ fontSize: 48, color: "white", mb: 1 }} />;
+        return <ImageIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: "#666", mb: 1 }} />;
       case "pdf":
-        return <PdfIcon sx={{ fontSize: 48, color: "#f44336", mb: 1 }} />;
+        return <PdfIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: "#f44336", mb: 1 }} />;
       case "word":
-        return <WordIcon sx={{ fontSize: 48, color: "#2196f3", mb: 1 }} />;
+        return <WordIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: "#2196f3", mb: 1 }} />;
       case "excel":
-        return <WordIcon sx={{ fontSize: 48, color: "#4caf50", mb: 1 }} />;
+        return <WordIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: "#4caf50", mb: 1 }} />;
       default:
-        return <ImageIcon sx={{ fontSize: 48, color: "white", mb: 1 }} />;
+        return <ImageIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: "#666", mb: 1 }} />;
     }
   };
 
@@ -464,543 +487,522 @@ const ProjectEdit = () => {
   }
 
   return (
-    <Box
-      sx={{
-        background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-        minHeight: "100vh",
-        py: 3,
-      }}
-    >
-      <Container maxWidth="lg" sx={{ px: 0 }}>
-        {/* Header */}
-        <Box
-          sx={{
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            p: 3,
-            color: "white",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <Box
+    <>
+      <Box
+        sx={{
+          background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+          minHeight: "100vh",
+          py: { xs: 2, sm: 3 },
+          px: { xs: 1, sm: 0 },
+        }}
+      >
+        <Container maxWidth="lg" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+          <Card
             sx={{
-              position: "absolute",
-              top: -50,
-              right: -50,
-              width: 200,
-              height: 200,
-              background: "rgba(255, 255, 255, 0.1)",
-              borderRadius: "50%",
-              zIndex: 0,
+              backgroundColor: "white",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+              border: "1px solid #e0e0e0",
+              overflow: "hidden",
+              borderRadius: { xs: 2, sm: 3 },
             }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              bottom: -30,
-              left: -30,
-              width: 150,
-              height: 150,
-              background: "rgba(255, 255, 255, 0.05)",
-              borderRadius: "50%",
-              zIndex: 0,
-            }}
-          />
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            position="relative"
-            zIndex={1}
           >
-            <Box display="flex" alignItems="center" gap={2}>
+          {/* Header */}
+          <Box
+            sx={{
+              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              p: { xs: 2, sm: 3 },
+              color: "white",
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: -50,
+                right: -50,
+                width: 200,
+                height: 200,
+                background: "rgba(255, 255, 255, 0.1)",
+                borderRadius: "50%",
+                zIndex: 0,
+              }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: -30,
+                left: -30,
+                width: 150,
+                height: 150,
+                background: "rgba(255, 255, 255, 0.05)",
+                borderRadius: "50%",
+                zIndex: 0,
+              }}
+            />
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={{ xs: 2, sm: 0 }}
+              position="relative"
+              zIndex={1}
+            >
+              <Box display="flex" alignItems="center" gap={{ xs: 1, sm: 2 }} flexWrap="wrap">
+                <Button
+                  variant="outlined"
+                  startIcon={<ArrowBackIcon />}
+                  onClick={() => navigate(`/projects/${id}`)}
+                  sx={{
+                    color: "white",
+                    borderColor: "rgba(255, 255, 255, 0.3)",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    px: { xs: 1.5, sm: 2 },
+                    py: { xs: 0.75, sm: 1 },
+                    "&:hover": {
+                      borderColor: "rgba(255, 255, 255, 0.5)",
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    },
+                  }}
+                >
+                  Back
+                </Button>
+                <Box>
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      fontWeight: 800,
+                      mb: { xs: 0.5, sm: 1 },
+                      textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+                      fontSize: { xs: "1.25rem", sm: "1.75rem", md: "2.125rem" },
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    Edit Project
+                  </Typography>
+                  <Typography 
+                    variant="body1" 
+                    sx={{ 
+                      opacity: 0.9,
+                      fontSize: { xs: "0.875rem", sm: "1rem" },
+                    }}
+                  >
+                    {project.name}
+                  </Typography>
+                </Box>
+              </Box>
               <Button
-                variant="outlined"
-                startIcon={<ArrowBackIcon />}
-                onClick={() => navigate(`/projects/${id}`)}
+                variant="contained"
+                startIcon={<SaveIcon />}
+                onClick={handleSave}
+                disabled={!isFormValid() || saving}
                 sx={{
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
                   color: "white",
-                  borderColor: "rgba(255, 255, 255, 0.3)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  px: { xs: 1.5, sm: 2 },
+                  py: { xs: 0.75, sm: 1 },
+                  width: { xs: "100%", sm: "auto" },
                   "&:hover": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
+                    backgroundColor: "rgba(255, 255, 255, 0.3)",
+                  },
+                  "&:disabled": {
                     backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    color: "rgba(255, 255, 255, 0.5)",
                   },
                 }}
               >
-                Back
+                {saving ? "Saving..." : "Save Changes"}
               </Button>
-              <Box>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 800,
-                    mb: 1,
-                    textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+            </Stack>
+          </Box>
+
+          {/* Content */}
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            {/* Basic Information */}
+            <Box>
+              <Box display="flex" alignItems="center" gap={1} mb={{ xs: 2, sm: 3 }}>
+                <ProjectIcon sx={{ color: "#667eea", fontSize: { xs: 24, sm: 28 } }} />
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    color: "#333",
+                    fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                    fontWeight: 700,
                   }}
                 >
-                  Edit Project
-                </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  {project.name}
+                  Basic Information
                 </Typography>
               </Box>
+              <Stack spacing={{ xs: 2, sm: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Project Name"
+                  value={projectForm.name}
+                  disabled
+                  required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Location"
+                  value={projectForm.location_name}
+                  disabled
+                  required
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Start Date"
+                  type="date"
+                  value={projectForm.start_date}
+                  onChange={(e) =>
+                    handleInputChange("start_date", e.target.value)
+                  }
+                  required
+                  InputLabelProps={{ shrink: true }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="End Date"
+                  type="date"
+                  value={projectForm.end_date}
+                  onChange={(e) =>
+                    handleInputChange("end_date", e.target.value)
+                  }
+                  InputLabelProps={{ shrink: true }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <FormControl
+                  fullWidth
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                >
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={projectForm.status}
+                    onChange={(e) =>
+                      handleInputChange("status", e.target.value)
+                    }
+                    label="Status"
+                  >
+                    <MenuItem value="planning">Planning</MenuItem>
+                    <MenuItem value="in_progress">In Progress</MenuItem>
+                    <MenuItem value="completed">Completed</MenuItem>
+                    <MenuItem value="on_hold">On Hold</MenuItem>
+                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  label="Progress (%)"
+                  type="number"
+                  value={projectForm.progress_percent}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "progress_percent",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  inputProps={{ min: 0, max: 100 }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Description"
+                  value={projectForm.description}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  label="Notes"
+                  value={projectForm.notes}
+                  onChange={(e) =>
+                    handleInputChange("notes", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Floor Size (m²)"
+                  type="number"
+                  value={projectForm.floor_size}
+                  onChange={(e) =>
+                    handleInputChange("floor_size", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <FormControl
+                  fullWidth
+                  disabled
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                >
+                  <InputLabel>Project Category</InputLabel>
+                  <Select
+                    value={projectForm.category}
+                    label="Project Category"
+                  >
+                    <MenuItem value="">
+                      <em>None</em>
+                    </MenuItem>
+                    {categories.map((cat) => (
+                      <MenuItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              onClick={handleSave}
-              disabled={!isFormValid() || saving}
-              sx={{
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                color: "white",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.3)",
-                },
-                "&:disabled": {
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  color: "rgba(255, 255, 255, 0.5)",
-                },
-              }}
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
-          </Box>
-        </Box>
 
-        {/* Content */}
-        <Box sx={{ p: 3 }}>
-          <Grid container spacing={3} sx={{ flexDirection: "column" }}>
-            {/* Basic Information */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                  border: "1px solid #e0e0e0",
-                }}
-              >
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <ProjectIcon sx={{ color: "#667eea" }} />
-                    <Typography variant="h6" sx={{ color: "#333" }}>
-                      Basic Information
-                    </Typography>
-                  </Box>
-                  <Stack spacing={3}>
-                    <TextField
-                      fullWidth
-                      label="Project Name"
-                      value={projectForm.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      required
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Location"
-                      value={projectForm.location_name}
-                      onChange={(e) =>
-                        handleInputChange("location_name", e.target.value)
-                      }
-                      required
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Start Date"
-                      type="date"
-                      value={projectForm.start_date}
-                      onChange={(e) =>
-                        handleInputChange("start_date", e.target.value)
-                      }
-                      required
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="End Date"
-                      type="date"
-                      value={projectForm.end_date}
-                      onChange={(e) =>
-                        handleInputChange("end_date", e.target.value)
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <FormControl
-                      fullWidth
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          "& fieldset": {
-                            borderColor: "rgba(255, 255, 255, 0.3)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255, 255, 255, 0.5)",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "white",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255, 255, 255, 0.8)",
-                        },
-                        "& .MuiSelect-select": {
-                          color: "white",
-                        },
-                      }}
-                    >
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={projectForm.status}
-                        onChange={(e) =>
-                          handleInputChange("status", e.target.value)
-                        }
-                        label="Status"
-                      >
-                        <MenuItem value="planning">Planning</MenuItem>
-                        <MenuItem value="in_progress">In Progress</MenuItem>
-                        <MenuItem value="completed">Completed</MenuItem>
-                        <MenuItem value="on_hold">On Hold</MenuItem>
-                        <MenuItem value="cancelled">Cancelled</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <TextField
-                      fullWidth
-                      label="Progress (%)"
-                      type="number"
-                      value={projectForm.progress_percent}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "progress_percent",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      inputProps={{ min: 0, max: 100 }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label="Description"
-                      value={projectForm.description}
-                      onChange={(e) =>
-                        handleInputChange("description", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
-                      label="Notes"
-                      value={projectForm.notes}
-                      onChange={(e) =>
-                        handleInputChange("notes", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Floor Size (m²)"
-                      type="number"
-                      value={projectForm.floor_size}
-                      onChange={(e) =>
-                        handleInputChange("floor_size", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <FormControl
-                      fullWidth
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          "& fieldset": {
-                            borderColor: "rgba(255, 255, 255, 0.3)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255, 255, 255, 0.5)",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "white",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255, 255, 255, 0.8)",
-                        },
-                        "& .MuiSelect-select": {
-                          color: "white",
-                        },
-                      }}
-                    >
-                      <InputLabel>Construction Type</InputLabel>
-                      <Select
-                        value={projectForm.construction_type}
-                        onChange={(e) =>
-                          handleInputChange("construction_type", e.target.value)
-                        }
-                        label="Construction Type"
-                      >
-                        <MenuItem value="building">Building</MenuItem>
-                        <MenuItem value="infrastructure">
-                          Infrastructure
-                        </MenuItem>
-                        <MenuItem value="industrial">Industrial</MenuItem>
-                        <MenuItem value="specialized">Specialized</MenuItem>
-                        <MenuItem value="other">Other</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Divider sx={{ my: { xs: 3, sm: 4 } }} />
 
             {/* Financial Information */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                  border: "1px solid #e0e0e0",
-                }}
-              >
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <MoneyIcon sx={{ color: "#f093fb" }} />
-                    <Typography variant="h6" sx={{ color: "#333" }}>
-                      Financial Information
-                    </Typography>
-                  </Box>
-                  <Stack spacing={3}>
-                    <TextField
-                      fullWidth
-                      label="Budget Estimate"
-                      type="number"
-                      value={projectForm.budget_estimate}
-                      onChange={(e) =>
-                        handleInputChange("budget_estimate", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Actual Cost"
-                      type="number"
-                      value={projectForm.actual_cost}
-                      onChange={(e) =>
-                        handleInputChange("actual_cost", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <FormControl
-                      fullWidth
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          "& fieldset": {
-                            borderColor: "rgba(255, 255, 255, 0.3)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255, 255, 255, 0.5)",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "white",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255, 255, 255, 0.8)",
-                        },
-                        "& .MuiSelect-select": {
-                          color: "white",
-                        },
-                      }}
-                    >
-                      <InputLabel>Currency</InputLabel>
-                      <Select
-                        value={projectForm.currency}
-                        onChange={(e) =>
-                          handleInputChange("currency", e.target.value)
-                        }
-                        label="Currency"
-                      >
-                        <MenuItem value="KES">KES (Kenyan Shilling)</MenuItem>
-                        <MenuItem value="USD">USD (US Dollar)</MenuItem>
-                        <MenuItem value="EUR">EUR (Euro)</MenuItem>
-                        <MenuItem value="GBP">GBP (British Pound)</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Box>
+              <Box display="flex" alignItems="center" gap={1} mb={{ xs: 2, sm: 3 }}>
+                <MoneyIcon sx={{ color: "#f093fb", fontSize: { xs: 24, sm: 28 } }} />
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    color: "#333",
+                    fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                    fontWeight: 700,
+                  }}
+                >
+                  Financial Information
+                </Typography>
+              </Box>
+              <Stack spacing={{ xs: 2, sm: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Budget Estimate"
+                  type="number"
+                  value={projectForm.budget_estimate}
+                  onChange={(e) =>
+                    handleInputChange("budget_estimate", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Actual Cost"
+                  type="number"
+                  value={projectForm.actual_cost}
+                  onChange={(e) =>
+                    handleInputChange("actual_cost", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <FormControl
+                  fullWidth
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                >
+                  <InputLabel>Currency</InputLabel>
+                  <Select
+                    value={projectForm.currency}
+                    onChange={(e) =>
+                      handleInputChange("currency", e.target.value)
+                    }
+                    label="Currency"
+                  >
+                    <MenuItem value="KES">KES (Kenyan Shilling)</MenuItem>
+                    <MenuItem value="USD">USD (US Dollar)</MenuItem>
+                    <MenuItem value="EUR">EUR (Euro)</MenuItem>
+                    <MenuItem value="GBP">GBP (British Pound)</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+            </Box>
+
+            <Divider sx={{ my: { xs: 3, sm: 4 } }} />
 
             {/* Stakeholders */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                  border: "1px solid #e0e0e0",
-                }}
-              >
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <ProjectIcon sx={{ color: "#4facfe" }} />
-                    <Typography variant="h6" sx={{ color: "#333" }}>
-                      Project Stakeholders
-                    </Typography>
-                  </Box>
-                  <Stack spacing={3}>
-                    <TextField
-                      fullWidth
-                      label="Contractor Name"
-                      value={projectForm.contractor_name}
-                      onChange={(e) =>
-                        handleInputChange("contractor_name", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Client Name"
-                      value={projectForm.client_name}
-                      onChange={(e) =>
-                        handleInputChange("client_name", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                    <TextField
-                      fullWidth
-                      label="Funding Source"
-                      value={projectForm.funding_source}
-                      onChange={(e) =>
-                        handleInputChange("funding_source", e.target.value)
-                      }
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "transparent",
-                        },
-                      }}
-                    />
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Box>
+              <Box display="flex" alignItems="center" gap={1} mb={{ xs: 2, sm: 3 }}>
+                <ProjectIcon sx={{ color: "#4facfe", fontSize: { xs: 24, sm: 28 } }} />
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    color: "#333",
+                    fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                    fontWeight: 700,
+                  }}
+                >
+                  Project Stakeholders
+                </Typography>
+              </Box>
+              <Stack spacing={{ xs: 2, sm: 3 }}>
+                <TextField
+                  fullWidth
+                  label="Contractor Name"
+                  value={projectForm.contractor_name}
+                  onChange={(e) =>
+                    handleInputChange("contractor_name", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Client Name"
+                  value={projectForm.client_name}
+                  onChange={(e) =>
+                    handleInputChange("client_name", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Funding Source"
+                  value={projectForm.funding_source}
+                  onChange={(e) =>
+                    handleInputChange("funding_source", e.target.value)
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "transparent",
+                    },
+                  }}
+                />
+              </Stack>
+            </Box>
+
+            <Divider sx={{ my: { xs: 3, sm: 4 } }} />
 
             {/* File Upload */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                  border: "1px solid #e0e0e0",
-                }}
-              >
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <UploadIcon sx={{ color: "#43e97b" }} />
-                    <Typography variant="h6" sx={{ color: "#333" }}>
-                      Project Documents
-                    </Typography>
-                  </Box>
+            <Box>
+              <Box display="flex" alignItems="center" gap={1} mb={{ xs: 2, sm: 3 }}>
+                <UploadIcon sx={{ color: "#43e97b", fontSize: { xs: 24, sm: 28 } }} />
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    color: "#333",
+                    fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                    fontWeight: 700,
+                  }}
+                >
+                  Project Documents
+                </Typography>
+              </Box>
 
-                  {/* File Upload */}
-                  <Box mb={3}>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleFileSelect}
-                      style={{ display: "none" }}
-                      id="file-upload"
-                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
-                    />
-                    <label htmlFor="file-upload">
-                      <Button
-                        variant="outlined"
-                        component="span"
-                        startIcon={<UploadIcon />}
-                        sx={{
-                          color: "#43e97b",
-                          borderColor: "#43e97b",
-                          "&:hover": {
-                            borderColor: "#43e97b",
-                            backgroundColor: "rgba(67, 233, 123, 0.1)",
-                          },
-                        }}
-                      >
-                        Upload Documents
-                      </Button>
-                    </label>
-                  </Box>
+              {/* File Upload */}
+              <Box mb={{ xs: 2, sm: 3 }}>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileSelect}
+                  style={{ display: "none" }}
+                  id="file-upload"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
+                />
+                <label htmlFor="file-upload">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<UploadIcon />}
+                    sx={{
+                      color: "#43e97b",
+                      borderColor: "#43e97b",
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      px: { xs: 1.5, sm: 2 },
+                      py: { xs: 0.75, sm: 1 },
+                      "&:hover": {
+                        borderColor: "#43e97b",
+                        backgroundColor: "rgba(67, 233, 123, 0.1)",
+                      },
+                    }}
+                  >
+                    Upload Documents
+                  </Button>
+                </label>
+              </Box>
 
-                  {/* Selected Files */}
-                  {selectedFiles.length > 0 && (
-                    <Box mb={3}>
-                      <Typography variant="subtitle2" mb={2}>
-                        Selected Files:
-                      </Typography>
-                      <Grid container spacing={2}>
-                        {selectedFiles.map((file, index) => {
-                          const preview = filePreviews.find(
-                            (p) => p.file === file
-                          );
-                          const fileType = getFileType(file.name);
+              {/* Selected Files */}
+              {selectedFiles.length > 0 && (
+                <Box mb={{ xs: 2, sm: 3 }}>
+                  <Typography 
+                    variant="subtitle2" 
+                    mb={2}
+                    sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                  >
+                    Selected Files:
+                  </Typography>
+                  <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                    {selectedFiles.map((file, index) => {
+                      const preview = filePreviews.find(
+                        (p) => p.file === file
+                      );
+                      const fileType = getFileType(file.name);
 
-                          return (
-                            <Grid item xs={12} sm={6} md={4} key={index}>
+                      return (
+                        <Grid item xs={12} sm={6} md={4} key={index}>
                               <Box
                                 sx={{
                                   p: 2,
@@ -1036,7 +1038,7 @@ const ProjectEdit = () => {
                                       alt={file.name}
                                       style={{
                                         width: "100%",
-                                        height: "150px",
+                                        height: isSmallScreen ? "120px" : "150px",
                                         objectFit: "cover",
                                         borderRadius: "8px",
                                         marginBottom: "8px",
@@ -1049,6 +1051,7 @@ const ProjectEdit = () => {
                                         display: "block",
                                         textAlign: "center",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {file.name}
@@ -1056,11 +1059,10 @@ const ProjectEdit = () => {
                                     <Typography
                                       variant="caption"
                                       sx={{
-                                        color: "white",
+                                        color: "#666",
                                         display: "block",
                                         textAlign: "center",
-                                        fontSize: "0.7rem",
-                                        opacity: 0.8,
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
                                       }}
                                     >
                                       Click to view full size
@@ -1073,7 +1075,7 @@ const ProjectEdit = () => {
                                       src={preview.preview}
                                       style={{
                                         width: "100%",
-                                        height: "200px",
+                                        height: isSmallScreen ? "150px" : "200px",
                                         border: "none",
                                         borderRadius: "8px",
                                         marginBottom: "8px",
@@ -1087,6 +1089,7 @@ const ProjectEdit = () => {
                                         display: "block",
                                         textAlign: "center",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {file.name}
@@ -1094,11 +1097,10 @@ const ProjectEdit = () => {
                                     <Typography
                                       variant="caption"
                                       sx={{
-                                        color: "white",
+                                        color: "#666",
                                         display: "block",
                                         textAlign: "center",
-                                        fontSize: "0.7rem",
-                                        opacity: 0.8,
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
                                       }}
                                     >
                                       PDF Preview
@@ -1113,6 +1115,7 @@ const ProjectEdit = () => {
                                         color: "#333",
                                         display: "block",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {file.name}
@@ -1122,7 +1125,7 @@ const ProjectEdit = () => {
                                       sx={{
                                         color: "#666",
                                         display: "block",
-                                        fontSize: "0.7rem",
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
                                       }}
                                     >
                                       {fileType === "pdf"
@@ -1143,31 +1146,39 @@ const ProjectEdit = () => {
                     </Box>
                   )}
 
-                  {/* Upload Progress */}
-                  {uploadingFiles && (
-                    <Box mb={2}>
-                      <Typography variant="body2" mb={1}>
-                        Uploading files...
-                      </Typography>
-                      <LinearProgress
-                        sx={{
-                          backgroundColor: "rgba(255, 255, 255, 0.2)",
-                          "& .MuiLinearProgress-bar": {
-                            backgroundColor: "white",
-                          },
-                        }}
-                      />
-                    </Box>
-                  )}
+              {/* Upload Progress */}
+              {uploadingFiles && (
+                <Box mb={2}>
+                  <Typography 
+                    variant="body2" 
+                    mb={1}
+                    sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+                  >
+                    Uploading files...
+                  </Typography>
+                  <LinearProgress
+                    sx={{
+                      backgroundColor: "rgba(0, 0, 0, 0.1)",
+                      "& .MuiLinearProgress-bar": {
+                        backgroundColor: "#43e97b",
+                      },
+                    }}
+                  />
+                </Box>
+              )}
 
-                  {/* Existing Files */}
-                  {projectFiles.length > 0 && (
-                    <Box>
-                      <Typography variant="subtitle2" mb={2}>
-                        Current Documents:
-                      </Typography>
-                      <Grid container spacing={2}>
-                        {projectFiles.map((fileUrl, index) => {
+              {/* Existing Files */}
+              {projectFiles.length > 0 && (
+                <Box>
+                  <Typography 
+                    variant="subtitle2" 
+                    mb={2}
+                    sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                  >
+                    Current Documents:
+                  </Typography>
+                  <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                    {projectFiles.map((fileUrl, index) => {
                           const fileName =
                             fileUrl.split("/").pop() || `Document ${index + 1}`;
                           const fileType = getFileType(fileName);
@@ -1220,7 +1231,7 @@ const ProjectEdit = () => {
                                       alt={fileName}
                                       style={{
                                         width: "100%",
-                                        height: "150px",
+                                        height: isSmallScreen ? "120px" : "150px",
                                         objectFit: "cover",
                                         borderRadius: "8px",
                                         marginBottom: "8px",
@@ -1239,9 +1250,10 @@ const ProjectEdit = () => {
                                       <Typography
                                         variant="caption"
                                         sx={{
-                                          color: "white",
+                                          color: "#333",
                                           display: "block",
                                           wordBreak: "break-word",
+                                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                         }}
                                       >
                                         {fileName}
@@ -1254,6 +1266,7 @@ const ProjectEdit = () => {
                                         display: "block",
                                         textAlign: "center",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {fileName}
@@ -1261,11 +1274,10 @@ const ProjectEdit = () => {
                                     <Typography
                                       variant="caption"
                                       sx={{
-                                        color: "white",
+                                        color: "#666",
                                         display: "block",
                                         textAlign: "center",
-                                        fontSize: "0.7rem",
-                                        opacity: 0.8,
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
                                       }}
                                     >
                                       Click to view full size
@@ -1277,7 +1289,7 @@ const ProjectEdit = () => {
                                       src={buildImageUrl(fileUrl)}
                                       style={{
                                         width: "100%",
-                                        height: "200px",
+                                        height: isSmallScreen ? "150px" : "200px",
                                         border: "none",
                                         borderRadius: "8px",
                                         marginBottom: "8px",
@@ -1291,6 +1303,7 @@ const ProjectEdit = () => {
                                         display: "block",
                                         textAlign: "center",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {fileName}
@@ -1298,11 +1311,10 @@ const ProjectEdit = () => {
                                     <Typography
                                       variant="caption"
                                       sx={{
-                                        color: "white",
+                                        color: "#666",
                                         display: "block",
                                         textAlign: "center",
-                                        fontSize: "0.7rem",
-                                        opacity: 0.8,
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
                                       }}
                                     >
                                       PDF Preview
@@ -1317,6 +1329,7 @@ const ProjectEdit = () => {
                                         color: "#333",
                                         display: "block",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {fileName}
@@ -1326,7 +1339,7 @@ const ProjectEdit = () => {
                                       sx={{
                                         color: "#666",
                                         display: "block",
-                                        fontSize: "0.7rem",
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
                                       }}
                                     >
                                       Click to download
@@ -1340,35 +1353,38 @@ const ProjectEdit = () => {
                       </Grid>
                     </Box>
                   )}
-                </CardContent>
-              </Card>
-            </Grid>
+            </Box>
+
+            <Divider sx={{ my: { xs: 3, sm: 4 } }} />
 
             {/* Blueprint Management */}
-            <Grid item xs={12}>
-              <Card
-                sx={{
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-                  border: "1px solid #e0e0e0",
-                }}
-              >
-                <CardContent>
-                  <Box display="flex" alignItems="center" gap={1} mb={3}>
-                    <ProjectIcon sx={{ color: "#ff6b6b" }} />
-                    <Typography variant="h6" sx={{ color: "#333" }}>
-                      Project Blueprints
-                    </Typography>
-                  </Box>
+            <Box>
+              <Box display="flex" alignItems="center" gap={1} mb={{ xs: 2, sm: 3 }}>
+                <ProjectIcon sx={{ color: "#ff6b6b", fontSize: { xs: 24, sm: 28 } }} />
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    color: "#333",
+                    fontSize: { xs: "1.25rem", sm: "1.5rem" },
+                    fontWeight: 700,
+                  }}
+                >
+                  Project Blueprints
+                </Typography>
+              </Box>
 
-                  {/* Current Blueprints */}
-                  {blueprintUrls.length > 0 && (
-                    <Box mb={3}>
-                      <Typography variant="subtitle2" mb={2}>
-                        Current Blueprints:
-                      </Typography>
-                      <Grid container spacing={2}>
-                        {blueprintUrls.map((url, index) => {
+              {/* Current Blueprints */}
+              {blueprintUrls.length > 0 && (
+                <Box mb={{ xs: 2, sm: 3 }}>
+                  <Typography 
+                    variant="subtitle2" 
+                    mb={2}
+                    sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                  >
+                    Current Blueprints:
+                  </Typography>
+                  <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                    {blueprintUrls.map((url, index) => {
                           const fileName =
                             url.split("/").pop() || `Blueprint ${index + 1}`;
                           const isImage = fileName.match(
@@ -1419,7 +1435,7 @@ const ProjectEdit = () => {
                                       alt={fileName}
                                       style={{
                                         width: "100%",
-                                        height: "150px",
+                                        height: isSmallScreen ? "120px" : "150px",
                                         objectFit: "cover",
                                         borderRadius: "8px",
                                         marginBottom: "8px",
@@ -1436,17 +1452,18 @@ const ProjectEdit = () => {
                                     >
                                       <ImageIcon
                                         sx={{
-                                          fontSize: 48,
-                                          color: "white",
+                                          fontSize: { xs: 36, sm: 48 },
+                                          color: "#666",
                                           mb: 1,
                                         }}
                                       />
                                       <Typography
                                         variant="caption"
                                         sx={{
-                                          color: "white",
+                                          color: "#333",
                                           display: "block",
                                           wordBreak: "break-word",
+                                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                         }}
                                       >
                                         {fileName}
@@ -1459,6 +1476,7 @@ const ProjectEdit = () => {
                                         display: "block",
                                         textAlign: "center",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {fileName}
@@ -1468,7 +1486,7 @@ const ProjectEdit = () => {
                                   <Box textAlign="center">
                                     <ImageIcon
                                       sx={{
-                                        fontSize: 48,
+                                        fontSize: { xs: 36, sm: 48 },
                                         color: "#666",
                                         mb: 1,
                                       }}
@@ -1479,6 +1497,7 @@ const ProjectEdit = () => {
                                         color: "#333",
                                         display: "block",
                                         wordBreak: "break-word",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                       }}
                                     >
                                       {fileName}
@@ -1493,45 +1512,52 @@ const ProjectEdit = () => {
                     </Box>
                   )}
 
-                  {/* Add Blueprint Files */}
-                  <Box>
-                    <input
-                      type="file"
-                      multiple
-                      accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp"
-                      onChange={handleBlueprintFileSelect}
-                      style={{ display: "none" }}
-                      id="blueprint-upload-edit"
-                    />
-                    <label htmlFor="blueprint-upload-edit">
-                      <Button
-                        variant="outlined"
-                        component="span"
-                        startIcon={<UploadIcon />}
-                        fullWidth
-                        sx={{
-                          color: "#ff6b6b",
-                          borderColor: "#ff6b6b",
-                          "&:hover": {
-                            borderColor: "#ff6b6b",
-                            backgroundColor: "rgba(255, 107, 107, 0.1)",
-                          },
-                          mb: 2,
-                        }}
-                      >
-                        Select Blueprint Files
-                      </Button>
-                    </label>
+              {/* Add Blueprint Files */}
+              <Box>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp"
+                  onChange={handleBlueprintFileSelect}
+                  style={{ display: "none" }}
+                  id="blueprint-upload-edit"
+                />
+                <label htmlFor="blueprint-upload-edit">
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    startIcon={<UploadIcon />}
+                    fullWidth
+                    sx={{
+                      color: "#ff6b6b",
+                      borderColor: "#ff6b6b",
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                      px: { xs: 1.5, sm: 2 },
+                      py: { xs: 0.75, sm: 1 },
+                      "&:hover": {
+                        borderColor: "#ff6b6b",
+                        backgroundColor: "rgba(255, 107, 107, 0.1)",
+                      },
+                      mb: { xs: 1.5, sm: 2 },
+                    }}
+                  >
+                    Select Blueprint Files
+                  </Button>
+                </label>
 
-                    {/* Selected Blueprint Files */}
-                    {blueprintFiles.length > 0 && (
-                      <Box>
-                        <Typography variant="subtitle2" mb={1}>
-                          New Blueprint Files:
-                        </Typography>
-                        <Grid container spacing={1}>
-                          {blueprintFiles.map((file, index) => (
-                            <Grid item xs={12} key={index}>
+                {/* Selected Blueprint Files */}
+                {blueprintFiles.length > 0 && (
+                  <Box>
+                    <Typography 
+                      variant="subtitle2" 
+                      mb={1}
+                      sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}
+                    >
+                      New Blueprint Files:
+                    </Typography>
+                    <Grid container spacing={{ xs: 1, sm: 1.5 }}>
+                      {blueprintFiles.map((file, index) => (
+                        <Grid item xs={12} key={index}>
                               <Box
                                 sx={{
                                   p: 1,
@@ -1560,7 +1586,7 @@ const ProjectEdit = () => {
                                     alt={file.name}
                                     style={{
                                       width: "100%",
-                                      height: "80px",
+                                      height: isSmallScreen ? "60px" : "80px",
                                       objectFit: "cover",
                                       borderRadius: "4px",
                                       marginBottom: "4px",
@@ -1572,10 +1598,13 @@ const ProjectEdit = () => {
                                     alignItems="center"
                                     gap={1}
                                   >
-                                    <ImageIcon />
+                                    <ImageIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
                                     <Typography
                                       variant="caption"
-                                      sx={{ color: "#333" }}
+                                      sx={{ 
+                                        color: "#333",
+                                        fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                      }}
                                     >
                                       {file.name}
                                     </Typography>
@@ -1588,6 +1617,7 @@ const ProjectEdit = () => {
                                     display: "block",
                                     textAlign: "center",
                                     wordBreak: "break-word",
+                                    fontSize: { xs: "0.7rem", sm: "0.75rem" },
                                   }}
                                 >
                                   {file.name}
@@ -1595,16 +1625,15 @@ const ProjectEdit = () => {
                               </Box>
                             </Grid>
                           ))}
-                        </Grid>
-                      </Box>
-                    )}
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Box>
-      </Container>
+                      </Grid>
+                    </Box>
+                  )}
+                </Box>
+            </Box>
+          </CardContent>
+          </Card>
+        </Container>
+      </Box>
 
       {/* Image Preview Modal (for images only) */}
       {previewModal.open && previewModal.type === "image" && (
@@ -1681,7 +1710,7 @@ const ProjectEdit = () => {
           </Box>
         </Box>
       )}
-    </Box>
+    </>
   );
 };
 
