@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -57,6 +57,9 @@ import Swal from "sweetalert2";
 
 const Tasks = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const projectFilterId = searchParams.get("project_id");
+  const shouldOpenCreate = searchParams.get("create") === "1";
   const theme = useTheme();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -117,7 +120,16 @@ const Tasks = () => {
 
   useEffect(() => {
     fetchTasks();
-  }, [page, rowsPerPage, activeTab]);
+  }, [page, rowsPerPage, activeTab, projectFilterId]);
+
+  useEffect(() => {
+    if (projectFilterId) {
+      setCreateForm((prev) => ({ ...prev, project_id: projectFilterId }));
+    }
+    if (shouldOpenCreate && projectFilterId) {
+      setOpenCreateDialog(true);
+    }
+  }, [projectFilterId, shouldOpenCreate]);
 
   // Fetch all tasks for tab counts on component mount
   useEffect(() => {
@@ -145,6 +157,10 @@ const Tasks = () => {
       const currentStatus = statusTabs[activeTab]?.value;
       if (currentStatus && currentStatus !== "all") {
         queryParams.append("status", currentStatus);
+      }
+
+      if (projectFilterId) {
+        queryParams.append("project_id", projectFilterId);
       }
 
       const response = await fetch(`/api/tasks?${queryParams}`, {
@@ -844,7 +860,12 @@ const Tasks = () => {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setOpenCreateDialog(true)}
+              onClick={() => {
+                if (projectFilterId) {
+                  setCreateForm((prev) => ({ ...prev, project_id: projectFilterId }));
+                }
+                setOpenCreateDialog(true);
+              }}
               sx={{
                 background: "linear-gradient(45deg, #FF6B6B, #4ECDC4)",
                 borderRadius: 3,
@@ -872,6 +893,24 @@ const Tasks = () => {
         <Box
           sx={{ p: { xs: 1, sm: 2, md: 3 }, minHeight: "calc(100vh - 200px)" }}
         >
+          {projectFilterId && (
+            <Alert
+              severity="info"
+              sx={{ mb: 2 }}
+              action={
+                <Stack direction="row" spacing={1}>
+                  <Button color="inherit" size="small" onClick={() => navigate(`/projects/${projectFilterId}`)}>
+                    Back to Project
+                  </Button>
+                  <Button color="inherit" size="small" onClick={() => navigate("/tasks")}>
+                    All Tasks
+                  </Button>
+                </Stack>
+              }
+            >
+              Showing tasks for this project. Create tasks and log progress updates here.
+            </Alert>
+          )}
           {/* Status Tabs */}
           <Box mb={3}>
             <Tabs

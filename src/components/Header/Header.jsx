@@ -7,11 +7,8 @@ import {
   Typography,
   CircularProgress,
   Avatar,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
 import {
-  Menu as MenuIcon,
   ArrowDropDown as ArrowDropDownIcon,
   Person as PersonIcon,
   AccountCircle as AccountCircleIcon,
@@ -62,8 +59,6 @@ const getInitials = (name) => {
 };
 
 export default function Header(props) {
-  const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
   const [currentUser, setCurrentUser] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
   const [toggleAccount, setToggleAccount] = useState(false);
@@ -114,26 +109,14 @@ export default function Header(props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          p: 2,
+          py: 0,
+          px: 0,
           color: "white",
           width: "100%",
+          height: "100%",
+          minHeight: 0,
         }}
       >
-        {!isSmallScreen && (
-          <IconButton
-            aria-label="open drawer"
-            onClick={props.handleDrawerOpen}
-            edge="start"
-            sx={{
-              color: "white",
-              marginRight: 5,
-              display: props.open ? "none" : "flex",
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-        )}
-
         <Box sx={{ flexGrow: 1 }}></Box>
 
         <Box sx={{ display: "flex", alignItems: "center" }}>

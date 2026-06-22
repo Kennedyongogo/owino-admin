@@ -1,67 +1,71 @@
-import React, { cloneElement, Fragment, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  People,
-  Logout,
-  ExpandLess,
-  ExpandMore,
-  PeopleAlt,
-  Map,
   Dashboard,
-  CreditCard,
-  MapOutlined,
-  StarRateSharp,
-  Search,
-  Construction,
-  DataArray,
-  DataObject,
-  Help,
-  DataUsage,
-  AccountCircle,
-  Description,
-  AccountBalance,
-  LocationOn,
-  Warning,
+  Logout,
   Settings,
-  QuestionAnswer,
-  Schedule,
-  Assignment,
-  Inventory,
-  Work,
-  AttachMoney,
-  Business,
-  Engineering,
-  Folder,
+  Bolt,
+  Construction,
+  ElectricalServices,
 } from "@mui/icons-material";
-import { Money } from "@phosphor-icons/react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { styled, useTheme } from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
 import MuiAppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import List from "@mui/material/List";
 import CssBaseline from "@mui/material/CssBaseline";
-import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import {
-  Box,
-  BottomNavigation,
-  BottomNavigationAction,
-  useMediaQuery,
-  Menu,
-  MenuItem,
-  Paper,
-} from "@mui/material";
+import { Box, Typography, useMediaQuery, Paper } from "@mui/material";
 import Header from "./Header/Header";
-import { Gear } from "@phosphor-icons/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBuilding } from "@fortawesome/free-solid-svg-icons";
 
-const drawerWidth = 300;
+const BRAND_BLUE = "#1a5fb4";
+const BRAND_BLUE_DARK = "#134a8c";
+const BRAND_GOLD = "#f5c518";
+
+const drawerWidth = 260;
+const drawerClosedWidth = 92;
+export const APP_BAR_HEIGHT = 64;
+
+const topBarSx = {
+  height: APP_BAR_HEIGHT,
+  minHeight: APP_BAR_HEIGHT,
+  maxHeight: APP_BAR_HEIGHT,
+  boxSizing: "border-box",
+  background: `linear-gradient(135deg, ${BRAND_BLUE} 0%, ${BRAND_BLUE_DARK} 100%)`,
+  boxShadow: `inset 0 -3px 0 ${BRAND_GOLD}`,
+};
+
+const NAV_LINKS = [
+  {
+    text: "Dashboard",
+    icon: Dashboard,
+    path: "/analytics",
+    paths: ["/analytics", "/home"],
+  },
+  {
+    text: "Projects",
+    icon: Construction,
+    path: "/projects",
+    paths: ["/projects"],
+  },
+  {
+    text: "Services",
+    icon: ElectricalServices,
+    path: "/services",
+    paths: ["/services"],
+  },
+  {
+    text: "Settings",
+    icon: Settings,
+    path: "/settings",
+    paths: ["/settings"],
+  },
+];
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
@@ -78,35 +82,42 @@ const closedMixin = (theme) => ({
     duration: theme.transitions.duration.leavingScreen,
   }),
   overflowX: "hidden",
-  width: `calc(${theme.spacing(7)} + 1px)`,
-  [theme.breakpoints.up("sm")]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
-  },
+  width: drawerClosedWidth,
 });
 
-const DrawerHeader = styled("div")(({ theme }) => ({
+const DrawerHeader = styled("div", {
+  shouldForwardProp: (prop) => prop !== "open",
+})(({ theme, open }) => ({
   display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  padding: theme.spacing(1, 0, 1, 1),
-  backgroundColor: "#fff",
-  color: "#2596be",
-  ...theme.mixins.toolbar,
+  alignItems: "center",
+  justifyContent: open ? "space-between" : "center",
+  gap: theme.spacing(0.5),
+  padding: theme.spacing(0, open ? 0.5 : 0),
+  flexShrink: 0,
+  overflow: "hidden",
+  ...topBarSx,
 }));
 
 const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== "open",
-})(({ theme, open }) => ({
+  shouldForwardProp: (prop) => prop !== "open" && prop !== "docked",
+})(({ theme, open, docked }) => ({
   zIndex: theme.zIndex.drawer + 1,
-  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  boxShadow: "0 4px 20px rgba(102, 126, 234, 0.3)",
   transition: theme.transitions.create(["width", "margin"], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  ...(open && {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
+  ...topBarSx,
+  boxShadow: `0 4px 24px rgba(26, 95, 180, 0.35), inset 0 -3px 0 ${BRAND_GOLD}`,
+  "& .MuiToolbar-root": {
+    minHeight: `${APP_BAR_HEIGHT}px !important`,
+    height: APP_BAR_HEIGHT,
+    maxHeight: APP_BAR_HEIGHT,
+    paddingTop: 0,
+    paddingBottom: 0,
+  },
+  ...(docked && {
+    marginLeft: open ? drawerWidth : drawerClosedWidth,
+    width: `calc(100% - ${open ? drawerWidth : drawerClosedWidth}px)`,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -117,513 +128,451 @@ const AppBar = styled(MuiAppBar, {
 const Drawer = styled(MuiDrawer, {
   shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
-  width: drawerWidth,
+  width: open ? drawerWidth : drawerClosedWidth,
   flexShrink: 0,
-  whiteSpace: "nowrap",
+  whiteSpace: open ? "nowrap" : "normal",
   boxSizing: "border-box",
-  overflowY: "hidden", // Disable vertical scrollbar
   ...(open && {
     ...openedMixin(theme),
-    "& .MuiDrawer-paper": openedMixin(theme),
+    "& .MuiDrawer-paper": {
+      ...openedMixin(theme),
+      display: "flex",
+      flexDirection: "column",
+      borderRight: `1px solid rgba(26, 95, 180, 0.12)`,
+      background: "linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%)",
+    },
   }),
   ...(!open && {
     ...closedMixin(theme),
-    "& .MuiDrawer-paper": closedMixin(theme),
+    "& .MuiDrawer-paper": {
+      ...closedMixin(theme),
+      display: "flex",
+      flexDirection: "column",
+      borderRight: `1px solid rgba(26, 95, 180, 0.12)`,
+      background: "linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%)",
+    },
   }),
 }));
 
+const isPathActive = (paths, pathname) =>
+  paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+const iconTileSx = (active, { isLogout = false, size = 42 } = {}) => ({
+  width: size,
+  height: size,
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+  ...(active && !isLogout
+    ? {
+        background: `linear-gradient(135deg, ${BRAND_BLUE}, ${BRAND_BLUE_DARK})`,
+        boxShadow: "0 4px 12px rgba(26,95,180,0.28)",
+      }
+    : {
+        bgcolor: isLogout ? "rgba(198, 40, 40, 0.1)" : "rgba(26, 95, 180, 0.08)",
+      }),
+});
+
+const iconColor = (active, isLogout = false) => {
+  if (isLogout) return "#c62828";
+  if (active) return "#ffffff";
+  return BRAND_BLUE;
+};
+
+const NavItemButton = ({ item, active, open, onClick }) => {
+  const Icon = item.icon;
+
+  if (!open) {
+    return (
+      <ListItemButton
+        onClick={onClick}
+        sx={{
+          mx: 0.75,
+          mb: 0.75,
+          borderRadius: 2,
+          py: 1.25,
+          px: 0.5,
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 0.75,
+          minHeight: 76,
+          position: "relative",
+          color: "inherit",
+          ...(active && {
+            bgcolor: "rgba(26, 95, 180, 0.06)",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: 0,
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 28,
+              height: 3,
+              borderRadius: 2,
+              bgcolor: BRAND_GOLD,
+            },
+          }),
+          "&:hover": { bgcolor: "rgba(26, 95, 180, 0.08)" },
+        }}
+      >
+        <Box sx={iconTileSx(active)}>
+          <Icon sx={{ fontSize: 24, color: iconColor(active) }} />
+        </Box>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: active ? 700 : 600,
+            fontSize: "0.58rem",
+            color: active ? BRAND_BLUE : "text.secondary",
+            textAlign: "center",
+            lineHeight: 1.2,
+            width: "100%",
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+          }}
+        >
+          {item.text}
+        </Typography>
+      </ListItemButton>
+    );
+  }
+
+  return (
+    <ListItemButton
+      onClick={onClick}
+      sx={{
+        mx: 1,
+        mb: 0.5,
+        borderRadius: 2,
+        minHeight: 48,
+        position: "relative",
+        overflow: "hidden",
+        color: "inherit",
+        ...(active && {
+          bgcolor: "rgba(26, 95, 180, 0.1)",
+          borderLeft: `4px solid ${BRAND_GOLD}`,
+        }),
+        "&:hover": { bgcolor: "rgba(26, 95, 180, 0.06)" },
+      }}
+    >
+      <ListItemIcon
+        sx={{
+          minWidth: 40,
+          color: active ? BRAND_BLUE : "text.secondary",
+          justifyContent: "center",
+        }}
+      >
+        <Icon sx={{ fontSize: 22 }} />
+      </ListItemIcon>
+      <ListItemText
+        primary={item.text}
+        primaryTypographyProps={{
+          fontWeight: active ? 700 : 600,
+          fontSize: "0.9rem",
+          color: active ? BRAND_BLUE : "text.primary",
+        }}
+      />
+    </ListItemButton>
+  );
+};
+
+const LogoutNavButton = ({ open, onClick }) => {
+  if (!open) {
+    return (
+      <ListItemButton
+        onClick={onClick}
+        sx={{
+          mx: 0.75,
+          borderRadius: 2,
+          py: 1.25,
+          px: 0.5,
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 0.75,
+          minHeight: 76,
+          border: "1px solid rgba(198, 40, 40, 0.2)",
+          bgcolor: "rgba(198, 40, 40, 0.04)",
+          "&:hover": { bgcolor: "rgba(198, 40, 40, 0.1)" },
+        }}
+      >
+        <Box
+          sx={{
+            width: 42,
+            height: 42,
+            borderRadius: "12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            bgcolor: "rgba(198, 40, 40, 0.1)",
+          }}
+        >
+          <Logout sx={{ fontSize: 24, color: "#c62828" }} />
+        </Box>
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 700,
+            fontSize: "0.58rem",
+            color: "#c62828",
+            textAlign: "center",
+            lineHeight: 1.2,
+            width: "100%",
+          }}
+        >
+          Logout
+        </Typography>
+      </ListItemButton>
+    );
+  }
+
+  return (
+    <ListItemButton
+      onClick={onClick}
+      sx={{
+        mx: 1,
+        borderRadius: 2,
+        minHeight: 48,
+        border: "1px solid rgba(198, 40, 40, 0.2)",
+        bgcolor: "rgba(198, 40, 40, 0.04)",
+        "&:hover": { bgcolor: "rgba(198, 40, 40, 0.1)" },
+      }}
+    >
+      <ListItemIcon sx={{ minWidth: 40, color: "#c62828", justifyContent: "center" }}>
+        <Logout sx={{ fontSize: 22 }} />
+      </ListItemIcon>
+      <ListItemText
+        primary="Logout"
+        primaryTypographyProps={{ fontWeight: 700, fontSize: "0.9rem", color: "#c62828" }}
+      />
+    </ListItemButton>
+  );
+};
+
+const BottomNavItem = ({ label, icon: Icon, active, isLogout, onClick }) => (
+  <Box
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+    onKeyDown={(e) => e.key === "Enter" && onClick()}
+    sx={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      py: 0.75,
+      px: 0.25,
+      cursor: "pointer",
+      userSelect: "none",
+      position: "relative",
+      transition: "transform 0.2s ease",
+      "&:active": { transform: "scale(0.95)" },
+    }}
+  >
+    {active && !isLogout && (
+      <Box
+        sx={{
+          position: "absolute",
+          top: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 24,
+          height: 3,
+          borderRadius: 2,
+          bgcolor: BRAND_GOLD,
+        }}
+      />
+    )}
+    <Box sx={iconTileSx(active, { isLogout, size: 40 })}>
+      <Icon sx={{ fontSize: 22, color: iconColor(active, isLogout) }} />
+    </Box>
+    <Typography
+      variant="caption"
+      noWrap
+      sx={{
+        fontWeight: active ? 700 : 600,
+        fontSize: "0.62rem",
+        color: active ? (isLogout ? "#c62828" : BRAND_BLUE) : "text.secondary",
+        lineHeight: 1.2,
+        textAlign: "center",
+        maxWidth: "100%",
+        mt: 0.25,
+      }}
+    >
+      {label}
+    </Typography>
+  </Box>
+);
+
 const Navbar = (props) => {
-  const { user } = props; // Expecting user role from props
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
-  const [open, setOpen] = useState(() => {
-    return window.innerWidth >= theme.breakpoints.values.md;
-  });
-  const [openSections, setOpenSections] = useState({
-    customerService: false,
-    riskManagement: false,
-    debtCollection: false,
-    "Construction Management": false,
-  });
-  const [menuItems, setMenuItems] = useState([]);
-  const [bottomNavValue, setBottomNavValue] = useState(0);
-  const [subMenuAnchor, setSubMenuAnchor] = useState(null);
-  const [selectedSubMenu, setSelectedSubMenu] = useState(null);
+  const [open, setOpen] = useState(() => window.innerWidth >= theme.breakpoints.values.md);
 
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
 
-  const handleToggle = (section) => {
-    setOpenSections((prevState) => ({
-      ...prevState,
-      [section]: !prevState[section],
-    }));
-  };
-
-  // Handle bottom navigation change
-  const handleBottomNavChange = (event, newValue) => {
-    const mainItems = menuItems.filter((item) => item.path || item.subItems);
-    const item = mainItems[newValue];
-    if (item) {
-      if (item.subItems) {
-        // Open submenu for items with sub-items
-        setSelectedSubMenu(item);
-        setSubMenuAnchor(event.currentTarget);
-        setBottomNavValue(newValue);
-      } else if (item.path) {
-        navigate(item.path);
-        setBottomNavValue(newValue);
-      }
-    }
-  };
-
-  // Handle submenu item click
-  const handleSubMenuItemClick = (subItem) => {
-    navigate(subItem.path);
-    setSubMenuAnchor(null);
-    setSelectedSubMenu(null);
-  };
-
-  // Close submenu
-  const handleSubMenuClose = () => {
-    setSubMenuAnchor(null);
-    setSelectedSubMenu(null);
-  };
-
   const logout = () => {
     localStorage.clear();
     navigate("/");
-    fetch("/api/admin-users/logout", {
-      method: "GET",
-      credentials: "include",
-    });
+    fetch("/api/admin-users/logout", { method: "GET", credentials: "include" });
   };
 
-  const adminItems = [
-    { text: "Dashboard", icon: <Dashboard />, path: "/analytics" },
-    {
-      text: "Projects",
-      icon: <Business />,
-      path: "/projects",
-    },
-    {
-      text: "Construction Management",
-      icon: <Engineering />,
-      subItems: [
-        {
-          text: "Tasks",
-          icon: <Assignment />,
-          path: "/tasks",
-        },
-        {
-          text: "Materials",
-          icon: <Inventory />,
-          path: "/materials",
-        },
-        {
-          text: "Equipment",
-          icon: <Construction />,
-          path: "/equipment",
-        },
-        {
-          text: "Labor",
-          icon: <Work />,
-          path: "/labor",
-        },
-        {
-          text: "Budget",
-          icon: <AttachMoney />,
-          path: "/budget",
-        },
-      ],
-    },
-    {
-      text: "Issues",
-      icon: <Warning />,
-      path: "/issues",
-    },
-    {
-      text: "Construction Map",
-      icon: <Map />,
-      path: "/map",
-    },
-    {
-      text: "Documents",
-      icon: <Folder />,
-      path: "/documents",
-    },
-  ];
-
   useEffect(() => {
-    if (user) {
-      // if (
-      //   user.Department ===
-      //   "Lands, Physical Planning, Housing and Urban Development"
-      // ) {
-      //   setMenuItems(adminItems);
-      // } else if (user.Department === "ICT") {
-      //   // setMenuItems(ICTItems);
-      // } else if (user.Department === "Finance and Economic Planning") {
-      //   // setMenuItems(financeItems);
-      // }
-      setMenuItems(adminItems);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setOpen(window.innerWidth >= theme.breakpoints.values.md);
-    };
-
+    const handleResize = () => setOpen(window.innerWidth >= theme.breakpoints.values.md);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [theme.breakpoints.values.md]);
 
-  // Sync bottom navigation value with current route
-  useEffect(() => {
-    if (isSmallScreen && menuItems.length > 0) {
-      const mainItems = menuItems.filter((item) => item.path || item.subItems);
-      const currentIndex = mainItems.findIndex(
-        (item) => item.path === location.pathname
-      );
-      if (currentIndex !== -1) {
-        setBottomNavValue(currentIndex);
-      }
-    }
-  }, [location.pathname, menuItems, isSmallScreen]);
-
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
-      <AppBar position="fixed" open={open}>
-        <Toolbar>
-          <Header
-            setUser={props.setUser}
-            handleDrawerOpen={handleDrawerOpen}
-            open={open}
-          />
+      <AppBar position="fixed" open={open} docked={!isSmallScreen}>
+        <Toolbar disableGutters sx={{ px: { xs: 1.5, md: 2 }, py: 0 }}>
+          {isSmallScreen && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mr: 1, flexShrink: 0 }}>
+              <Box
+                component="img"
+                src="/logo.png"
+                alt="SafeWire"
+                sx={{ height: 32, width: "auto" }}
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", lineHeight: 1.1, color: "#fff" }}>
+                  SafeWire
+                </Typography>
+                <Typography sx={{ fontSize: "0.65rem", color: BRAND_GOLD, fontWeight: 600 }}>
+                  Electrical
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          <Header setUser={props.setUser} handleDrawerOpen={handleDrawerOpen} open={open} />
         </Toolbar>
       </AppBar>
-      <Drawer
-        variant="permanent"
-        open={open}
-        sx={{
-          display: { xs: "none", md: "block" },
-        }}
-      >
-        <DrawerHeader>
-          <Box></Box>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === "rtl" ? (
-              <ChevronRightIcon />
-            ) : (
-              <ChevronLeftIcon />
-            )}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
-          {menuItems.map((item) => (
-            <Fragment key={item.text}>
-              {item.subItems ? (
-                <>
-                  <ListItem
-                    button
-                    onClick={() => handleToggle(item.text)}
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      pr: 1,
-                    }}
-                  >
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", flex: 1 }}
-                    >
-                      <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText
-                        sx={{
-                          fontSize: "small",
-                          color:
-                            location.pathname === item.path
-                              ? "primary"
-                              : "textSecondary",
-                          fontWeight:
-                            location.pathname === item.path ? "bold" : "normal",
-                        }}
-                        primary={item.text}
-                      />
-                    </Box>
-                    <Box sx={{ ml: "auto" }}>
-                      {openSections[item.text] ? (
-                        <ExpandLess />
-                      ) : (
-                        <ExpandMore />
-                      )}
-                    </Box>
-                  </ListItem>
-                  {openSections[item.text] && (
-                    <List component="div" disablePadding>
-                      {item.subItems.map((subItem) => (
-                        <ListItem
-                          key={subItem.text}
-                          button
-                          onClick={() => navigate(subItem.path)}
-                          selected={location.pathname === subItem.path}
-                          sx={{
-                            fontSize: "x-small",
-                            pl: 4, // Indent subitems
-                            typography: "body2", // Reduce font size
-                            fontStyle: "italic", // Italicize text
-                            cursor: "pointer",
-                            bgcolor:
-                              location.pathname === subItem.path
-                                ? "action.selected"
-                                : "transparent", // Highlight selected subitem
-                          }}
-                        >
-                          <ListItemIcon>{subItem.icon}</ListItemIcon>
-                          <ListItemText
-                            primary={subItem.text}
-                            sx={{
-                              fontSize: "x-small",
-                              color:
-                                location.pathname === item.path
-                                  ? "primary"
-                                  : "textSecondary",
-                              fontWeight:
-                                location.pathname === item.path
-                                  ? "bold"
-                                  : "normal", // Highlight text for selected item
-                            }}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  )}
-                </>
-              ) : (
-                <ListItem
-                  key={item.text}
-                  button
-                  onClick={() => navigate(item.path)}
-                  selected={location.pathname === item.path}
-                  sx={{
-                    cursor: "pointer",
-                    bgcolor:
-                      location.pathname === item.path
-                        ? "action.selected"
-                        : "transparent", // Highlight selected item
-                  }}
-                >
-                  <ListItemIcon>
-                    {cloneElement(item.icon, {
-                      color:
-                        location.pathname === item.path
-                          ? "primary"
-                          : "textSecondary",
-                    })}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.text}
-                    sx={{
-                      cursor: "pointer",
-                      color:
-                        location.pathname === item.path
-                          ? "primary"
-                          : "textSecondary",
-                      fontWeight:
-                        location.pathname === item.path ? "bold" : "normal", // Highlight text for selected item
-                    }}
-                  />
-                </ListItem>
-              )}
-            </Fragment>
-          ))}
-        </List>
-        <Divider />
-        <List>
-          {user && user.role === "super_admin" && (
-            <ListItem
-              button
-              onClick={() => navigate("/users")}
-              selected={location.pathname === "/users"}
-              sx={{
-                cursor: "pointer",
-                bgcolor:
-                  location.pathname === "/users"
-                    ? "action.selected"
-                    : "transparent",
-              }}
-            >
-              <ListItemIcon>
-                <PeopleAlt
-                  color={
-                    location.pathname === "/users" ? "primary" : "textSecondary"
-                  }
-                />
-              </ListItemIcon>
-              <ListItemText
-                primary="Users"
-                sx={{
-                  cursor: "pointer",
-                  color:
-                    location.pathname === "/users"
-                      ? "primary"
-                      : "textSecondary",
-                  fontWeight:
-                    location.pathname === "/users" ? "bold" : "normal",
-                }}
-              />
-            </ListItem>
-          )}
-          <ListItem
-            button
-            onClick={() => navigate("/settings")}
-            selected={location.pathname === "/settings"}
-            sx={{
-              cursor: "pointer",
-              bgcolor:
-                location.pathname === "/settings"
-                  ? "action.selected"
-                  : "transparent",
-            }}
-          >
-            <ListItemIcon>
-              <Gear
-                size={24}
-                color={
-                  location.pathname === "/settings"
-                    ? "primary"
-                    : "textSecondary"
-                }
-              />
-            </ListItemIcon>
-            <ListItemText
-              primary="Settings"
-              sx={{
-                cursor: "pointer",
-                color:
-                  location.pathname === "/settings"
-                    ? "primary"
-                    : "textSecondary",
-                fontWeight:
-                  location.pathname === "/settings" ? "bold" : "normal",
-              }}
-            />
-          </ListItem>
-          <ListItem button onClick={logout} sx={{ cursor: "pointer" }}>
-            <ListItemIcon>
-              <Logout />
-            </ListItemIcon>
-            <ListItemText primary="Logout" />
-          </ListItem>
-        </List>
-      </Drawer>
 
-      {/* Bottom Navigation for Small Screens */}
-      {isSmallScreen && (
-        <>
-          <Paper
-            sx={{
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              zIndex: theme.zIndex.drawer + 1,
-              display: { xs: "block", md: "none" },
-            }}
-            elevation={3}
-          >
-            <BottomNavigation
-              value={bottomNavValue}
-              onChange={handleBottomNavChange}
-              showLabels
-              sx={{
-                backgroundColor: "#fff",
-                borderTop: "1px solid rgba(0, 0, 0, 0.1)",
-                "& .MuiBottomNavigationAction-root": {
-                  color: "text.secondary",
-                  minWidth: "auto",
-                  padding: "6px 8px",
-                  "&.Mui-selected": {
-                    color: theme.palette.primary.main,
-                  },
-                },
-                "& .MuiBottomNavigationAction-label": {
-                  fontSize: "0.7rem",
-                  fontWeight: 500,
-                  "&.Mui-selected": {
-                    fontSize: "0.7rem",
-                    fontWeight: 600,
-                  },
-                },
-              }}
-            >
-              {menuItems
-                .filter((item) => item.path || item.subItems)
-                .map((item, index) => (
-                  <BottomNavigationAction
-                    key={item.text}
-                    label={
-                      item.text.length > 12
-                        ? item.text.substring(0, 10) + "..."
-                        : item.text
-                    }
-                    icon={item.icon}
-                    onClick={(e) => {
-                      if (item.subItems) {
-                        setSelectedSubMenu(item);
-                        setSubMenuAnchor(e.currentTarget);
-                      }
-                    }}
-                  />
-                ))}
-            </BottomNavigation>
-          </Paper>
-
-          {/* Submenu for items with sub-items */}
-          <Menu
-            anchorEl={subMenuAnchor}
-            open={Boolean(subMenuAnchor)}
-            onClose={handleSubMenuClose}
-            anchorOrigin={{
-              vertical: "top",
-              horizontal: "center",
-            }}
-            transformOrigin={{
-              vertical: "bottom",
-              horizontal: "center",
-            }}
-            PaperProps={{
-              sx: {
-                mt: -8,
-                minWidth: 200,
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
-              },
-            }}
-          >
-            {selectedSubMenu?.subItems?.map((subItem) => (
-              <MenuItem
-                key={subItem.text}
-                onClick={() => handleSubMenuItemClick(subItem)}
-                selected={location.pathname === subItem.path}
+      <Drawer variant="permanent" open={open} sx={{ display: { xs: "none", md: "block" } }}>
+        <DrawerHeader open={open}>
+          {open ? (
+            <>
+              <Box
                 sx={{
-                  "&.Mui-selected": {
-                    backgroundColor: "action.selected",
-                  },
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  flex: 1,
+                  minWidth: 0,
+                  pl: 1.5,
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  {subItem.icon}
-                  {subItem.text}
+                <Box
+                  component="img"
+                  src="/logo.png"
+                  alt="SafeWire"
+                  sx={{ height: 32, width: "auto", flexShrink: 0 }}
+                  onError={(e) => { e.target.style.display = "none"; }}
+                />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    noWrap
+                    sx={{ fontWeight: 800, color: "#fff", fontSize: "0.85rem", lineHeight: 1.15 }}
+                  >
+                    SafeWire Electrical
+                  </Typography>
+                  <Typography
+                    noWrap
+                    sx={{ fontSize: "0.65rem", color: BRAND_GOLD, fontWeight: 600, lineHeight: 1.15 }}
+                  >
+                    Admin Portal
+                  </Typography>
                 </Box>
-              </MenuItem>
+              </Box>
+              <IconButton
+                onClick={handleDrawerClose}
+                size="small"
+                aria-label="collapse drawer"
+                sx={{
+                  color: "#fff",
+                  flexShrink: 0,
+                  mr: 0.25,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.12)" },
+                }}
+              >
+                {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+              </IconButton>
+            </>
+          ) : (
+            <IconButton
+              onClick={handleDrawerOpen}
+              aria-label="expand drawer"
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                border: `2px solid ${BRAND_GOLD}`,
+                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+              }}
+            >
+              <Bolt sx={{ color: BRAND_GOLD, fontSize: 20 }} />
+            </IconButton>
+          )}
+        </DrawerHeader>
+
+        <List sx={{ px: open ? 0.5 : 0.25, flex: 1, pt: 1 }}>
+          {NAV_LINKS.map((item) => (
+            <NavItemButton
+              key={item.text}
+              item={item}
+              open={open}
+              active={isPathActive(item.paths, location.pathname)}
+              onClick={() => navigate(item.path)}
+            />
+          ))}
+        </List>
+
+        <Box sx={{ p: open ? 1 : 0.75, mt: "auto" }}>
+          <LogoutNavButton open={open} onClick={logout} />
+        </Box>
+      </Drawer>
+
+      {isSmallScreen && (
+        <Paper
+          elevation={0}
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: theme.zIndex.drawer + 1,
+            display: { xs: "block", md: "none" },
+            borderRadius: "20px 20px 0 0",
+            borderTop: `3px solid ${BRAND_GOLD}`,
+            background: "linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%)",
+            boxShadow: "0 -10px 40px rgba(26, 95, 180, 0.18)",
+            pb: "max(env(safe-area-inset-bottom), 4px)",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "stretch", minHeight: 64 }}>
+            {NAV_LINKS.map((item) => (
+              <BottomNavItem
+                key={item.text}
+                label={item.text}
+                icon={item.icon}
+                active={isPathActive(item.paths, location.pathname)}
+                onClick={() => navigate(item.path)}
+              />
             ))}
-          </Menu>
-        </>
+            <BottomNavItem label="Logout" icon={Logout} isLogout onClick={logout} />
+          </Box>
+        </Paper>
       )}
     </Box>
   );

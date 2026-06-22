@@ -1,10 +1,11 @@
 import React, { useEffect, useState, Suspense, lazy } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import { Box, CircularProgress, useMediaQuery, useTheme } from "@mui/material";
-import Navbar from "./Navbar";
+import Navbar, { APP_BAR_HEIGHT } from "./Navbar";
 import Settings from "../Pages/Settings";
 import NotFound from "../Pages/NotFound";
 import Projects from "./Projects/Projects";
+import Services from "./Services/Services";
 import ProjectView from "./Projects/ProjectView";
 import ProjectEdit from "./Projects/ProjectEdit";
 import Tasks from "./Tasks/Tasks";
@@ -57,7 +58,7 @@ function PageRoutes() {
         sx={{
           flexGrow: 1,
           p: { xs: 2, sm: 3 },
-          mt: { xs: 8, sm: 9 },
+          mt: `${APP_BAR_HEIGHT}px`,
           pb: { xs: 10, sm: 3 },
           width: "100%",
           maxWidth: "100%",
@@ -96,6 +97,7 @@ function PageRoutes() {
               <Route path="projects/create" element={<ProjectCreate />} />
               <Route path="projects/:id" element={<ProjectView />} />
               <Route path="projects/:id/edit" element={<ProjectEdit />} />
+              <Route path="services" element={<Services />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="tasks/:id" element={<TaskView />} />
             <Route path="materials" element={<Materials />} />
