@@ -6,6 +6,8 @@ import Settings from "../Pages/Settings";
 import NotFound from "../Pages/NotFound";
 import Projects from "./Projects/Projects";
 import Services from "./Services/Services";
+import Reviews from "./Reviews/Reviews";
+import Inquiries from "./Inquiries/Inquiries";
 import ProjectView from "./Projects/ProjectView";
 import ProjectEdit from "./Projects/ProjectEdit";
 import Tasks from "./Tasks/Tasks";
@@ -98,6 +100,8 @@ function PageRoutes() {
               <Route path="projects/:id" element={<ProjectView />} />
               <Route path="projects/:id/edit" element={<ProjectEdit />} />
               <Route path="services" element={<Services />} />
+              <Route path="reviews" element={<Reviews />} />
+              <Route path="inquiries" element={<Inquiries />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="tasks/:id" element={<TaskView />} />
             <Route path="materials" element={<Materials />} />

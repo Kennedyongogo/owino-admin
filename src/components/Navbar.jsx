@@ -6,6 +6,8 @@ import {
   Bolt,
   Construction,
   ElectricalServices,
+  RateReview,
+  ContactMail,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { styled, useTheme } from "@mui/material/styles";
@@ -58,6 +60,18 @@ const NAV_LINKS = [
     icon: ElectricalServices,
     path: "/services",
     paths: ["/services"],
+  },
+  {
+    text: "Reviews",
+    icon: RateReview,
+    path: "/reviews",
+    paths: ["/reviews"],
+  },
+  {
+    text: "Inquiries",
+    icon: ContactMail,
+    path: "/inquiries",
+    paths: ["/inquiries"],
   },
   {
     text: "Settings",

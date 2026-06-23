@@ -39,7 +39,6 @@ import {
   Visibility as ViewIcon,
   Warning as WarningIcon,
   Person as PersonIcon,
-  Email as EmailIcon,
   Description as DescriptionIcon,
   Category as CategoryIcon,
   Construction as ProjectIcon,
@@ -62,7 +61,7 @@ const Issues = () => {
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [editForm, setEditForm] = useState({
     name: "",
-    email: "",
+    phone_number: "",
     description: "",
     category: "",
     project_id: "",
@@ -154,18 +153,19 @@ const Issues = () => {
   };
 
   const getCategoryText = (category) => {
-    switch (category) {
-      case "project_inquiry":
-        return "Project Inquiry";
-      case "technical_issue":
-        return "Technical Issue";
-      case "billing_issue":
-        return "Billing Issue";
-      case "general_inquiry":
-        return "General Inquiry";
-      default:
-        return category;
-    }
+    const labels = {
+      general_inquiry: "General Inquiry",
+      quote_request: "Quote Request",
+      residential_wiring: "Residential Wiring",
+      commercial_electrical: "Commercial Electrical",
+      solar_installation: "Solar Installation",
+      emergency_repair: "Emergency Repair",
+      lighting_installation: "Lighting Installation",
+      safety_inspection: "Safety Inspection",
+      project_inquiry: "Project Inquiry",
+      other: "Other",
+    };
+    return labels[category] || category;
   };
 
   const formatDate = (dateString) => {
@@ -216,7 +216,7 @@ const Issues = () => {
     setSelectedIssue(issue);
     setEditForm({
       name: issue.name,
-      email: issue.email,
+      phone_number: issue.phone_number,
       description: issue.description,
       category: issue.category,
       project_id: issue.project_id,
@@ -513,7 +513,7 @@ const Issues = () => {
                 >
                   <TableCell>No</TableCell>
                   <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
+                  <TableCell>Phone</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Project</TableCell>
                   <TableCell>Status</TableCell>
@@ -588,7 +588,7 @@ const Issues = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ color: "#7f8c8d" }}>
-                          {issue.email}
+                          {issue.phone_number}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -809,7 +809,7 @@ const Issues = () => {
 
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
-                    <strong>Email:</strong> {selectedIssue.email}
+                    <strong>Phone:</strong> {selectedIssue.phone_number}
                   </Typography>
                   <Typography variant="subtitle2" gutterBottom>
                     <strong>Category:</strong>{" "}
@@ -881,7 +881,7 @@ const Issues = () => {
             setSelectedIssue(null);
             setEditForm({
               name: "",
-              email: "",
+              phone_number: "",
               description: "",
               category: "",
               project_id: "",
@@ -964,7 +964,7 @@ const Issues = () => {
             sx={{ p: 3, pt: 3, maxHeight: "70vh", overflowY: "auto" }}
           >
             <Stack spacing={3} sx={{ mt: 1 }}>
-              {/* Name and Email Row */}
+              {/* Name and Phone Row */}
               <Box
                 display="flex"
                 flexDirection={{ xs: "column", sm: "row" }}
@@ -983,11 +983,11 @@ const Issues = () => {
                 />
                 <TextField
                   fullWidth
-                  label="Email"
-                  type="email"
-                  value={editForm.email}
+                  label="Phone number"
+                  type="tel"
+                  value={editForm.phone_number}
                   onChange={(e) =>
-                    setEditForm({ ...editForm, email: e.target.value })
+                    setEditForm({ ...editForm, phone_number: e.target.value })
                   }
                   variant="outlined"
                   size="small"
@@ -1011,10 +1011,16 @@ const Issues = () => {
                     label="Category"
                     required
                   >
-                    <MenuItem value="project_inquiry">Project Inquiry</MenuItem>
-                    <MenuItem value="technical_issue">Technical Issue</MenuItem>
-                    <MenuItem value="billing_issue">Billing Issue</MenuItem>
                     <MenuItem value="general_inquiry">General Inquiry</MenuItem>
+                    <MenuItem value="quote_request">Quote Request</MenuItem>
+                    <MenuItem value="residential_wiring">Residential Wiring</MenuItem>
+                    <MenuItem value="commercial_electrical">Commercial Electrical</MenuItem>
+                    <MenuItem value="solar_installation">Solar Installation</MenuItem>
+                    <MenuItem value="emergency_repair">Emergency Repair</MenuItem>
+                    <MenuItem value="lighting_installation">Lighting Installation</MenuItem>
+                    <MenuItem value="safety_inspection">Safety Inspection</MenuItem>
+                    <MenuItem value="project_inquiry">Project Inquiry</MenuItem>
+                    <MenuItem value="other">Other</MenuItem>
                   </Select>
                 </FormControl>
                 <FormControl fullWidth variant="outlined" size="small">
@@ -1087,7 +1093,7 @@ const Issues = () => {
                 setSelectedIssue(null);
                 setEditForm({
                   name: "",
-                  email: "",
+                  phone_number: "",
                   description: "",
                   category: "",
                   project_id: "",
