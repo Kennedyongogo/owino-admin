@@ -16,7 +16,6 @@ import {
   IconButton,
   LinearProgress,
   Chip,
-  Slider,
   Alert,
   Divider,
   Paper,
@@ -43,9 +42,12 @@ import {
   cardSx,
   sectionTitleSx,
   fieldSx,
+  percentFieldSx,
   primaryButtonSx,
   statusColors,
   formatStatus,
+  parseProgressPercent,
+  sanitizeProgressInput,
 } from "./projectTheme";
 import ProjectImageUpload from "./ProjectImageUpload";
 
@@ -92,7 +94,7 @@ const INITIAL_FORM = {
   currency: "KES",
   client_name: "",
   engineer_in_charge: "",
-  progress_percent: 0,
+  progress_percent: "",
   category: "",
 };
 
@@ -227,7 +229,7 @@ const ProjectCreate = () => {
       start_date: form.start_date,
       currency: form.currency,
       engineer_in_charge: form.engineer_in_charge,
-      progress_percent: Number(form.progress_percent) || 0,
+      progress_percent: parseProgressPercent(form.progress_percent, 0),
     };
     if (form.description.trim()) payload.description = form.description.trim();
     if (form.end_date) payload.end_date = form.end_date;
@@ -558,24 +560,17 @@ const ProjectCreate = () => {
                 ))}
               </Select>
             </FormControl>
-            <Box>
-              <Typography variant="body2" fontWeight={600} color="text.secondary" mb={1}>
-                Progress — {form.progress_percent}%
-              </Typography>
-              <Slider
-                value={Number(form.progress_percent) || 0}
-                onChange={(_, v) => handleChange("progress_percent", v)}
-                min={0}
-                max={100}
-                step={5}
-                valueLabelDisplay="auto"
-                sx={{
-                  color: BRAND_BLUE,
-                  "& .MuiSlider-thumb": { border: `2px solid ${BRAND_GOLD}` },
-                  "& .MuiSlider-track": { background: `linear-gradient(90deg, ${BRAND_BLUE}, ${BRAND_GOLD})` },
-                }}
-              />
-            </Box>
+            <TextField
+              fullWidth
+              label="Progress (%)"
+              type="number"
+              placeholder="Enter percentage"
+              value={form.progress_percent}
+              onChange={(e) => handleChange("progress_percent", sanitizeProgressInput(e.target.value))}
+              inputProps={{ min: 0, max: 100 }}
+              helperText="Optional — 0 to 100"
+              sx={percentFieldSx}
+            />
             <TextField
               fullWidth
               required

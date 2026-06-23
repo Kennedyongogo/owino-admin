@@ -39,6 +39,10 @@ import {
   statusColors,
   formatStatus,
   buildImageUrl,
+  percentFieldSx,
+  formatProgressInput,
+  parseProgressPercent,
+  sanitizeProgressInput,
 } from "./projectTheme";
 import ProjectImageUpload from "./ProjectImageUpload";
 
@@ -68,7 +72,7 @@ const EMPTY_FORM = {
   actual_cost: "",
   currency: "KES",
   client_name: "",
-  progress_percent: 0,
+  progress_percent: "",
   category: "",
 };
 
@@ -120,7 +124,7 @@ const ProjectEdit = () => {
           actual_cost: data.actual_cost ?? "",
           currency: data.currency || "KES",
           client_name: data.client_name || "",
-          progress_percent: data.progress_percent ?? 0,
+          progress_percent: formatProgressInput(data.progress_percent),
           category: data.category || "",
         });
       } else {
@@ -147,7 +151,7 @@ const ProjectEdit = () => {
     actual_cost: form.actual_cost !== "" ? form.actual_cost : null,
     currency: form.currency,
     client_name: form.client_name,
-    progress_percent: Number(form.progress_percent) || 0,
+    progress_percent: parseProgressPercent(form.progress_percent, project?.progress_percent ?? 0),
     category: form.category,
   });
 
@@ -447,12 +451,11 @@ const ProjectEdit = () => {
                 fullWidth
                 label="Progress (%)"
                 type="number"
+                placeholder="Enter percentage"
                 value={form.progress_percent}
-                onChange={(e) =>
-                  handleChange("progress_percent", parseInt(e.target.value, 10) || 0)
-                }
+                onChange={(e) => handleChange("progress_percent", sanitizeProgressInput(e.target.value))}
                 inputProps={{ min: 0, max: 100 }}
-                sx={fieldSx}
+                sx={percentFieldSx}
               />
               <TextField
                 fullWidth

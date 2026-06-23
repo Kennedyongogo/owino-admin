@@ -205,22 +205,20 @@ const Projects = () => {
 
   const renderProjectActions = (project) => (
     <Box display="flex" justifyContent="flex-end" gap={0.25} flexShrink={0}>
-      {!isSmallScreen && (
-        <Tooltip title="View">
-          <IconButton
-            size="small"
-            onClick={() => navigate(`/projects/${project.id}`)}
-            sx={{ color: BRAND_BLUE, bgcolor: "rgba(26,95,180,0.08)", p: 0.75 }}
-          >
-            <ViewIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
-      )}
+      <Tooltip title="View">
+        <IconButton
+          size="small"
+          onClick={() => navigate(`/projects/${project.id}`)}
+          sx={{ color: BRAND_BLUE, bgcolor: "rgba(26,95,180,0.08)", p: { xs: 0.5, sm: 0.75 } }}
+        >
+          <ViewIcon sx={{ fontSize: 18 }} />
+        </IconButton>
+      </Tooltip>
       <Tooltip title="Edit">
         <IconButton
           size="small"
           onClick={() => navigate(`/projects/${project.id}/edit`)}
-          sx={{ color: BRAND_GOLD, bgcolor: "rgba(245,197,24,0.15)", p: 0.75 }}
+          sx={{ color: BRAND_GOLD, bgcolor: "rgba(245,197,24,0.15)", p: { xs: 0.5, sm: 0.75 } }}
         >
           <EditIcon sx={{ fontSize: 18 }} />
         </IconButton>
@@ -229,7 +227,7 @@ const Projects = () => {
         <IconButton
           size="small"
           onClick={() => handleDeleteProject(project)}
-          sx={{ color: "#c62828", bgcolor: "rgba(198,40,40,0.08)", p: 0.75 }}
+          sx={{ color: "#c62828", bgcolor: "rgba(198,40,40,0.08)", p: { xs: 0.5, sm: 0.75 } }}
         >
           <DeleteIcon sx={{ fontSize: 18 }} />
         </IconButton>
@@ -272,10 +270,8 @@ const Projects = () => {
       px: { xs: 1, sm: 2 },
       gap: { xs: 0.5, sm: 1 },
     },
-    "& .MuiTablePagination-spacer": {
-      flex: "1 1 auto",
-    },
-    "& .MuiTablePagination-selectLabel": {
+    "& .MuiTablePagination-spacer": { flex: "1 1 auto" },
+    "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
       fontWeight: 600,
       fontSize: { xs: "0.75rem", sm: "0.875rem" },
       margin: 0,
@@ -285,15 +281,7 @@ const Projects = () => {
       marginRight: { xs: 1, sm: 2 },
       marginLeft: { xs: 0.5, sm: 1 },
     },
-    "& .MuiTablePagination-displayedRows": {
-      fontWeight: 600,
-      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-      margin: 0,
-      whiteSpace: "nowrap",
-    },
-    "& .MuiTablePagination-actions": {
-      marginLeft: { xs: 0.5, sm: 1 },
-    },
+    "& .MuiTablePagination-actions": { marginLeft: { xs: 0.5, sm: 1 } },
   };
 
   const colSpan = isSmallScreen ? 3 : 4;
@@ -470,10 +458,19 @@ const Projects = () => {
                     },
                   }}
                 >
-                  <TableCell sx={{ width: { xs: "12%", sm: 56 } }}>No</TableCell>
-                  <TableCell sx={{ width: { xs: "53%", sm: "auto" } }}>Project</TableCell>
+                  <TableCell sx={{ width: { xs: 36, sm: 56 }, minWidth: { xs: 36, sm: 56 } }}>No</TableCell>
+                  <TableCell sx={{ minWidth: 0 }}>Project</TableCell>
                   <TableCell sx={{ display: { xs: "none", sm: "table-cell" }, width: 120 }}>Status</TableCell>
-                  <TableCell align="right" sx={{ width: { xs: "35%", sm: 130 } }}>Actions</TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      width: { xs: 112, sm: 130 },
+                      minWidth: { xs: 112, sm: 130 },
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Actions
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -495,14 +492,14 @@ const Projects = () => {
                       key={project.id}
                       hover
                       sx={{
-                        cursor: "pointer",
+                        cursor: isSmallScreen ? "default" : "pointer",
                         borderLeft: "3px solid transparent",
                         "&:hover": {
                           bgcolor: "rgba(26,95,180,0.04)",
                           borderLeftColor: BRAND_GOLD,
                         },
                       }}
-                      onClick={() => navigate(`/projects/${project.id}`)}
+                      onClick={isSmallScreen ? undefined : () => navigate(`/projects/${project.id}`)}
                     >
                       <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
                         {page * rowsPerPage + idx + 1}

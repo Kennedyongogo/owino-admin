@@ -37,6 +37,37 @@ export const fieldSx = {
   "& .MuiInputLabel-root.Mui-focused": { color: BRAND_BLUE },
 };
 
+export const percentFieldSx = {
+  ...fieldSx,
+  "& input[type=number]": { MozAppearance: "textfield" },
+  "& input[type=number]::-webkit-outer-spin-button, & input[type=number]::-webkit-inner-spin-button": {
+    WebkitAppearance: "none",
+    margin: 0,
+  },
+};
+
+export const formatProgressInput = (value) => {
+  if (value === null || value === undefined || value === "") return "";
+  if (Number(value) === 0) return "";
+  return String(value);
+};
+
+export const parseProgressPercent = (value, fallback = 0) => {
+  if (value === "" || value === null || value === undefined) return fallback;
+  const num = Number(value);
+  if (Number.isNaN(num)) return fallback;
+  return Math.min(100, Math.max(0, Math.round(num)));
+};
+
+export const sanitizeProgressInput = (raw) => {
+  if (raw === "") return "";
+  const digits = raw.replace(/\D/g, "");
+  if (digits === "") return "";
+  const num = parseInt(digits, 10);
+  if (Number.isNaN(num)) return "";
+  return String(Math.min(100, num));
+};
+
 export const primaryButtonSx = {
   textTransform: "none",
   fontWeight: 700,

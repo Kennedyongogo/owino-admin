@@ -70,6 +70,10 @@ import {
   formatStatus,
   primaryButtonSx,
   buildImageUrl,
+  percentFieldSx,
+  formatProgressInput,
+  parseProgressPercent,
+  sanitizeProgressInput,
 } from "./projectTheme";
 
 const formatDate = (d) =>
@@ -281,7 +285,7 @@ const emptyTaskForm = {
 const emptyProgressForm = {
   status: "pending",
   description: "",
-  progress_percent: 0,
+  progress_percent: "",
   date: new Date().toISOString().split("T")[0],
   images: [],
 };
@@ -559,7 +563,7 @@ const ProjectView = () => {
     setProgressForm({
       ...emptyProgressForm,
       status: task?.status || "pending",
-      progress_percent: task?.progress_percent ?? 0,
+      progress_percent: formatProgressInput(task?.progress_percent),
       date: new Date().toISOString().split("T")[0],
     });
     setOpenProgressDialog(true);
@@ -575,7 +579,7 @@ const ProjectView = () => {
     setProgressForm({
       status: task?.status || "pending",
       description: update.description || "",
-      progress_percent: update.progress_percent ?? 0,
+      progress_percent: formatProgressInput(update.progress_percent),
       date: (update.date || "").toString().split("T")[0] || new Date().toISOString().split("T")[0],
       images: Array.isArray(update.images) ? [...update.images] : [],
     });
@@ -627,7 +631,10 @@ const ProjectView = () => {
     }
 
     const isEdit = progressDialogMode === "edit" && editingProgressUpdate?.id;
-    const nextProgress = Math.min(100, Math.max(0, Number(progressForm.progress_percent) || 0));
+    const nextProgress = parseProgressPercent(
+      progressForm.progress_percent,
+      selectedTaskForProgress.progress_percent ?? 0
+    );
     const nextStatus = progressForm.status;
     const statusChanged = nextStatus !== selectedTaskForProgress.status;
     const progressChanged = nextProgress !== (selectedTaskForProgress.progress_percent ?? 0);
@@ -733,7 +740,7 @@ const ProjectView = () => {
   const desktopHeaderActions = (
     <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ width: { xs: "100%", md: "auto" } }}>
       <Button variant="outlined" startIcon={<PdfIcon />} onClick={() => setQuotationModal(true)} sx={{ ...headerActionSx, width: { xs: "100%", sm: "auto" }, fontSize: { sm: "0.875rem" } }}>
-        Generate Quotation
+        Generate Invoice
       </Button>
       <Button
         variant="contained"
@@ -773,7 +780,7 @@ const ProjectView = () => {
           "&:hover": { borderColor: BRAND_BLUE_DARK, bgcolor: "rgba(255,255,255,0.92)", borderWidth: 2 },
         }}
       >
-        Generate Quotation
+        Generate Invoice
       </Button>
       <Button
         variant="contained"
@@ -1372,7 +1379,7 @@ const ProjectView = () => {
                       ...prev,
                       status: task.status || "pending",
                       ...(progressDialogMode === "create"
-                        ? { progress_percent: task.progress_percent ?? 0 }
+                        ? { progress_percent: formatProgressInput(task.progress_percent) }
                         : {}),
                     }));
                   }
@@ -1403,22 +1410,23 @@ const ProjectView = () => {
               type="number"
               fullWidth
               size="small"
+              placeholder="Enter percentage"
               inputProps={{ min: 0, max: 100 }}
               value={progressForm.progress_percent}
               onChange={(e) =>
                 setProgressForm({
                   ...progressForm,
-                  progress_percent: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)),
+                  progress_percent: sanitizeProgressInput(e.target.value),
                 })
               }
-              sx={dialogFieldSx}
+              sx={{ ...dialogFieldSx, ...percentFieldSx }}
             />
             <TextField label="Date" type="date" required fullWidth size="small" InputLabelProps={{ shrink: true }} value={progressForm.date} onChange={(e) => setProgressForm({ ...progressForm, date: e.target.value })} sx={dialogFieldSx} />
             {selectedTaskForProgress &&
               taskNeedsProgressNote(
                 selectedTaskForProgress,
                 progressForm.status,
-                Number(progressForm.progress_percent) || 0
+                parseProgressPercent(progressForm.progress_percent, selectedTaskForProgress.progress_percent ?? 0)
               ) && (
                 <Typography variant="caption" color="text.secondary">
                   Updating status or progress from 0% will be saved together with this progress note.
