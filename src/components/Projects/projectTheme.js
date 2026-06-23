@@ -58,5 +58,21 @@ export const statusColors = {
   cancelled: { bg: "rgba(211, 47, 47, 0.12)", color: "#c62828" },
 };
 
+export const taskStatusColors = {
+  pending: { bg: "rgba(26, 95, 180, 0.12)", color: BRAND_BLUE },
+  in_progress: { bg: "rgba(245, 197, 24, 0.2)", color: "#9a7b00" },
+  completed: { bg: "rgba(46, 125, 50, 0.12)", color: "#2e7d32" },
+};
+
+export const TASK_STATUSES = ["pending", "in_progress", "completed"];
+
 export const formatStatus = (status) =>
   (status || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+export const buildImageUrl = (imageUrl) => {
+  if (!imageUrl) return "";
+  if (imageUrl.startsWith("http")) return imageUrl;
+  if (imageUrl.startsWith("uploads/")) return `/${imageUrl}`;
+  if (imageUrl.startsWith("/uploads/")) return imageUrl;
+  return imageUrl;
+};

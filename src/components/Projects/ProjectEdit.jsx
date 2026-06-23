@@ -24,6 +24,7 @@ import {
   Construction,
   AttachMoney,
   Person,
+  Image as ImageIcon,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import {
@@ -37,7 +38,9 @@ import {
   primaryButtonSx,
   statusColors,
   formatStatus,
+  buildImageUrl,
 } from "./projectTheme";
+import ProjectImageUpload from "./ProjectImageUpload";
 
 const STATUS_OPTIONS = [
   "planning",
@@ -78,6 +81,8 @@ const ProjectEdit = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   useEffect(() => {
     fetchProject();
@@ -102,6 +107,8 @@ const ProjectEdit = () => {
       if (response.ok && result.success) {
         const data = result.data;
         setProject(data);
+        setImageFile(null);
+        setImagePreview(data.image ? buildImageUrl(data.image) : "");
         setForm({
           name: data.name || "",
           location_name: data.location_name || "",
@@ -144,6 +151,25 @@ const ProjectEdit = () => {
     category: form.category,
   });
 
+  const buildFormData = () => {
+    const formData = new FormData();
+    const payload = buildPayload();
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        formData.append(key, String(value));
+      }
+    });
+    if (imageFile) {
+      formData.append("project_image", imageFile);
+    }
+    return formData;
+  };
+
+  const handleImageFile = (file) => {
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -153,9 +179,8 @@ const ProjectEdit = () => {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(buildPayload()),
+        body: buildFormData(),
       });
 
       const result = await response.json();
@@ -340,6 +365,17 @@ const ProjectEdit = () => {
           </Box>
 
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <SectionHeader icon={ImageIcon} title="Project Photo" />
+            <Box sx={{ mb: 3 }}>
+              <ProjectImageUpload
+                preview={imagePreview}
+                onFile={handleImageFile}
+                onInvalidFile={() =>
+                  Swal.fire({ icon: "error", title: "Invalid file", text: "Please choose an image file (JPG, PNG, GIF)." })
+                }
+              />
+            </Box>
+
             <SectionHeader icon={Construction} title="Basic Information" />
             <Stack spacing={2}>
               <TextField

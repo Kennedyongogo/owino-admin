@@ -1,23 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  IconButton,
-  Menu,
-  MenuItem,
-  Typography,
-  CircularProgress,
-  Avatar,
-} from "@mui/material";
-import {
-  ArrowDropDown as ArrowDropDownIcon,
-  Person as PersonIcon,
-  AccountCircle as AccountCircleIcon,
-  Lock as LockIcon,
-  Logout as LogoutIcon,
-} from "@mui/icons-material";
-import UserAccount from "./userAccount";
-import EditUserDetails from "./editUserDetails";
-import ChangePassword from "./changePassword";
+import { Box, Typography, CircularProgress, Avatar } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 const LoadingScreen = () => (
@@ -32,25 +14,21 @@ const LoadingScreen = () => (
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "rgba(255, 255, 255, 1)",
-      zIndex: 1300, // Ensure it covers other components
+      zIndex: 1300,
     }}
   >
     <CircularProgress />
   </Box>
 );
 
-// Helper to build URL for uploaded assets using Vite proxy
 const buildImageUrl = (imageUrl) => {
   if (!imageUrl) return "";
   if (imageUrl.startsWith("http")) return imageUrl;
-
-  // Use relative URLs - Vite proxy will handle routing to backend
   if (imageUrl.startsWith("uploads/")) return `/${imageUrl}`;
   if (imageUrl.startsWith("/uploads/")) return imageUrl;
   return imageUrl;
 };
 
-// Helper to get user initials
 const getInitials = (name) => {
   if (!name) return "U";
   const parts = name.trim().split(/\s+/);
@@ -60,16 +38,11 @@ const getInitials = (name) => {
 
 export default function Header(props) {
   const [currentUser, setCurrentUser] = useState("");
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [toggleAccount, setToggleAccount] = useState(false);
-  const [toggleEditDetails, setToggleEditDetails] = useState(false);
-  const [toggleChangePass, setToggleChangePass] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     setLoading(true);
-    // Load user from localStorage instead of API call
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
 
@@ -79,27 +52,20 @@ export default function Header(props) {
       props.setUser(userData);
       setLoading(false);
     } else {
-      // Redirect to login if no user or token
-      window.location.href = "/";
+      navigate("/");
     }
   }, []);
 
-  const logout = () => {
-    localStorage.clear();
-    navigate("/");
-    fetch("/api/admin/logout", {
-      method: "GET",
-      credentials: "include",
-    });
-  };
+  useEffect(() => {
+    const onUserUpdated = (event) => {
+      if (!event.detail) return;
+      setCurrentUser(event.detail);
+      props.setUser(event.detail);
+    };
 
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+    window.addEventListener("admin-user-updated", onUserUpdated);
+    return () => window.removeEventListener("admin-user-updated", onUserUpdated);
+  }, [props]);
 
   return (
     <>
@@ -108,7 +74,7 @@ export default function Header(props) {
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           py: 0,
           px: 0,
           color: "white",
@@ -117,106 +83,40 @@ export default function Header(props) {
           minHeight: 0,
         }}
       >
-        <Box sx={{ flexGrow: 1 }}></Box>
-
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Typography variant="body1" sx={{ mr: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+          <Typography
+            variant="body1"
+            sx={{
+              fontWeight: 600,
+              display: { xs: "none", sm: "block" },
+              maxWidth: 180,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             {currentUser?.name}
           </Typography>
 
-          {/* Profile Picture or Avatar */}
-          <Box sx={{ mr: 1 }}>
-            {currentUser?.profile_picture ? (
-              <Avatar
-                src={buildImageUrl(currentUser.profile_picture)}
-                alt={currentUser?.name}
-                sx={{
-                  width: 32,
-                  height: 32,
-                  border: "2px solid rgba(255, 255, 255, 0.3)",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                }}
-              />
-            ) : (
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  backgroundColor: "rgba(255, 255, 255, 0.2)",
-                  border: "2px solid rgba(255, 255, 255, 0.3)",
-                  color: "white",
-                  fontWeight: "bold",
-                  fontSize: "0.875rem",
-                }}
-              >
-                {getInitials(currentUser?.name)}
-              </Avatar>
-            )}
-          </Box>
-
-          <IconButton color="inherit" onClick={handleClick}>
-            <ArrowDropDownIcon />
-          </IconButton>
+          <Avatar
+            key={currentUser?.profile_picture || currentUser?.id || "avatar"}
+            src={currentUser?.profile_picture ? buildImageUrl(currentUser.profile_picture) : undefined}
+            alt={currentUser?.name || "Profile"}
+            imgProps={{ style: { objectFit: "cover" } }}
+            sx={{
+              width: 36,
+              height: 36,
+              bgcolor: "rgba(255, 255, 255, 0.2)",
+              border: "2px solid rgba(245, 197, 24, 0.85)",
+              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: "0.9rem",
+            }}
+          >
+            {getInitials(currentUser?.name)}
+          </Avatar>
         </Box>
-
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleClose}
-        >
-          <MenuItem
-            onClick={() => {
-              setToggleAccount(true);
-              handleClose();
-            }}
-          >
-            <AccountCircleIcon sx={{ mr: 1 }} /> Account
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              navigate("/settings");
-              handleClose();
-            }}
-          >
-            <LockIcon sx={{ mr: 1 }} /> Change Password
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              logout();
-              handleClose();
-            }}
-          >
-            <LogoutIcon sx={{ mr: 1 }} /> Logout
-          </MenuItem>
-        </Menu>
-
-        {currentUser && (
-          <UserAccount
-            onClose={() => {
-              setToggleAccount(false);
-            }}
-            open={toggleAccount}
-            currentUser={currentUser}
-          />
-        )}
-        {currentUser && (
-          <EditUserDetails
-            open={toggleEditDetails}
-            onClose={() => {
-              setToggleEditDetails(false);
-            }}
-            currentUser={currentUser}
-          />
-        )}
-        {currentUser && (
-          <ChangePassword
-            open={toggleChangePass}
-            onClose={() => {
-              setToggleChangePass(false);
-            }}
-            currentUser={currentUser}
-          />
-        )}
       </Box>
     </>
   );

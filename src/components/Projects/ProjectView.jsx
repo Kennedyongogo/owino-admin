@@ -52,6 +52,7 @@ import {
   Close as CloseIcon,
   Add as AddIcon,
   Bolt,
+  Visibility as ViewIcon,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import QuotationGenerator from "./QuotationGenerator";
@@ -64,17 +65,12 @@ import {
   cardSx,
   sectionTitleSx,
   statusColors,
+  taskStatusColors,
+  TASK_STATUSES,
   formatStatus,
   primaryButtonSx,
+  buildImageUrl,
 } from "./projectTheme";
-
-const buildImageUrl = (url) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  if (url.startsWith("uploads/")) return `/${url}`;
-  if (url.startsWith("/uploads/")) return url;
-  return url;
-};
 
 const formatDate = (d) =>
   d
@@ -127,8 +123,9 @@ const headerActionSx = {
   "&:hover": { bgcolor: "rgba(255,255,255,0.22)", borderColor: BRAND_GOLD },
 };
 
-const StatusChip = ({ status, onDark = false }) => {
-  const s = statusColors[status] || statusColors.on_hold;
+const StatusChip = ({ status, onDark = false, kind = "project" }) => {
+  const palette = kind === "task" ? taskStatusColors : statusColors;
+  const s = palette[status] || statusColors.on_hold;
   if (onDark) {
     return (
       <Chip
@@ -282,10 +279,141 @@ const emptyTaskForm = {
 };
 
 const emptyProgressForm = {
+  status: "pending",
   description: "",
   progress_percent: 0,
   date: new Date().toISOString().split("T")[0],
   images: [],
+};
+
+const taskNeedsProgressNote = (task, nextStatus, nextProgress) => {
+  if (!task) return false;
+  const statusChangingFromPending =
+    nextStatus && task.status === "pending" && nextStatus !== "pending";
+  const statusChangingToCompleted =
+    nextStatus && task.status === "in_progress" && nextStatus === "completed";
+  const progressChangingFromZero =
+    nextProgress !== undefined && (task.progress_percent ?? 0) === 0 && nextProgress > 0;
+  return statusChangingFromPending || statusChangingToCompleted || progressChangingFromZero;
+};
+
+const TaskViewCard = ({ task, onLogProgress }) => {
+  const progress = task?.progress_percent ?? 0;
+  const taskUpdates = (task?.progressUpdates || []).slice().sort(
+    (a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)
+  );
+
+  return (
+    <Stack spacing={2}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 2, sm: 2.5 },
+          borderRadius: 2,
+          border: `1px solid rgba(26, 95, 180, 0.14)`,
+          background: "linear-gradient(160deg, #f8fbff 0%, #fffef8 100%)",
+        }}
+      >
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          justifyContent="space-between"
+          alignItems={{ xs: "flex-start", sm: "center" }}
+          spacing={1.5}
+          mb={2}
+        >
+          <Box minWidth={0}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: BRAND_BLUE, fontSize: { xs: "1.05rem", sm: "1.2rem" }, wordBreak: "break-word" }}>
+              {task.name}
+            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" mt={0.75}>
+              <StatusChip status={task.status || "pending"} kind="task" />
+              <Typography variant="body2" fontWeight={700} color="#9a7b00">
+                {progress}% complete
+              </Typography>
+            </Stack>
+          </Box>
+          {onLogProgress && (
+            <Button
+              size="small"
+              variant="contained"
+              startIcon={<ProgressIcon />}
+              onClick={onLogProgress}
+              sx={{ ...primaryButtonSx, flexShrink: 0, width: { xs: "100%", sm: "auto" } }}
+            >
+              Log Progress
+            </Button>
+          )}
+        </Stack>
+
+        <LinearProgress
+          variant="determinate"
+          value={progress}
+          sx={{
+            height: 8,
+            borderRadius: 4,
+            mb: 2,
+            bgcolor: "rgba(26,95,180,0.1)",
+            "& .MuiLinearProgress-bar": {
+              borderRadius: 4,
+              background: `linear-gradient(90deg, ${BRAND_BLUE}, ${BRAND_GOLD})`,
+            },
+          }}
+        />
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            gap: { xs: 1.25, sm: 1.5 },
+          }}
+        >
+          <DetailRow label="Assigned To" value={task.assignedAdmin?.name || "—"} />
+          <DetailRow label="Start Date" value={formatDate(task.start_date)} />
+          <DetailRow label="Due Date" value={formatDate(task.due_date)} />
+          <DetailRow label="Last Updated" value={formatDate(task.updatedAt)} />
+        </Box>
+
+        {task.description && (
+          <Box sx={{ mt: 2 }}>
+            <DetailRow label="Description" value={task.description} />
+          </Box>
+        )}
+      </Paper>
+
+      <Box>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: BRAND_BLUE, mb: 1 }}>
+          Progress history ({taskUpdates.length})
+        </Typography>
+        {taskUpdates.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+            No progress updates logged for this task yet.
+          </Typography>
+        ) : (
+          <Stack spacing={1.25}>
+            {taskUpdates.map((update) => (
+              <Paper
+                key={update.id}
+                variant="outlined"
+                sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2, borderColor: "rgba(26,95,180,0.12)" }}
+              >
+                <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" spacing={0.5} mb={0.75}>
+                  <Typography variant="body2" fontWeight={700} color={BRAND_BLUE}>
+                    {update.progress_percent ?? 0}% milestone
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formatDate(update.date || update.createdAt)}
+                  </Typography>
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ wordBreak: "break-word" }}>
+                  {update.description}
+                </Typography>
+              </Paper>
+            ))}
+          </Stack>
+        )}
+      </Box>
+    </Stack>
+  );
 };
 
 const ProjectView = () => {
@@ -304,6 +432,10 @@ const ProjectView = () => {
   const [progressSubmitting, setProgressSubmitting] = useState(false);
   const [selectedTaskForProgress, setSelectedTaskForProgress] = useState(null);
   const [progressForm, setProgressForm] = useState(emptyProgressForm);
+  const [progressDialogMode, setProgressDialogMode] = useState("create");
+  const [editingProgressUpdate, setEditingProgressUpdate] = useState(null);
+  const [openTaskViewDialog, setOpenTaskViewDialog] = useState(false);
+  const [selectedTaskForView, setSelectedTaskForView] = useState(null);
 
   const fetchProject = useCallback(async ({ silent = false } = {}) => {
     try {
@@ -367,6 +499,51 @@ const ProjectView = () => {
     };
   }, [project]);
 
+  const progressImagePreviews = useMemo(
+    () =>
+      progressForm.images.map((file, index) => ({
+        index,
+        name:
+          file instanceof File
+            ? file.name
+            : (typeof file === "string" ? file.split("/").pop() : null) || `Image ${index + 1}`,
+        url: file instanceof File ? URL.createObjectURL(file) : buildImageUrl(file),
+        isObjectUrl: file instanceof File,
+      })),
+    [progressForm.images]
+  );
+
+  useEffect(
+    () => () => {
+      progressImagePreviews.forEach((preview) => {
+        if (preview.isObjectUrl) URL.revokeObjectURL(preview.url);
+      });
+    },
+    [progressImagePreviews]
+  );
+
+  const handleAddProgressImages = (event) => {
+    const newFiles = Array.from(event.target.files || []);
+    if (!newFiles.length) return;
+    setProgressForm((prev) => ({ ...prev, images: [...prev.images, ...newFiles] }));
+    event.target.value = "";
+  };
+
+  const handleRemoveProgressImage = (index) => {
+    setProgressForm((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  const closeProgressDialog = () => {
+    setOpenProgressDialog(false);
+    setSelectedTaskForProgress(null);
+    setProgressForm(emptyProgressForm);
+    setProgressDialogMode("create");
+    setEditingProgressUpdate(null);
+  };
+
   const openCreateTask = () => {
     setCreateTaskForm({
       ...emptyTaskForm,
@@ -376,13 +553,45 @@ const ProjectView = () => {
   };
 
   const openProgressForTask = (task = null) => {
+    setProgressDialogMode("create");
+    setEditingProgressUpdate(null);
     setSelectedTaskForProgress(task);
     setProgressForm({
       ...emptyProgressForm,
+      status: task?.status || "pending",
       progress_percent: task?.progress_percent ?? 0,
       date: new Date().toISOString().split("T")[0],
     });
     setOpenProgressDialog(true);
+  };
+
+  const openEditProgressUpdate = (update) => {
+    const taskId = update.taskId || update.task_id || update.task?.id;
+    const task = related.tasks?.find((t) => t.id === taskId) || update.task || null;
+
+    setProgressDialogMode("edit");
+    setEditingProgressUpdate(update);
+    setSelectedTaskForProgress(task);
+    setProgressForm({
+      status: task?.status || "pending",
+      description: update.description || "",
+      progress_percent: update.progress_percent ?? 0,
+      date: (update.date || "").toString().split("T")[0] || new Date().toISOString().split("T")[0],
+      images: Array.isArray(update.images) ? [...update.images] : [],
+    });
+    setOpenProgressDialog(true);
+  };
+
+  const openTaskViewDialogFor = (task) => {
+    setSelectedTaskForView(task);
+    setOpenTaskViewDialog(true);
+  };
+
+  const openProgressFromTaskView = () => {
+    const task = selectedTaskForView;
+    setOpenTaskViewDialog(false);
+    setSelectedTaskForView(null);
+    if (task) openProgressForTask(task);
   };
 
   const handleCreateTask = async () => {
@@ -416,31 +625,77 @@ const ProjectView = () => {
       Swal.fire({ icon: "warning", title: "Missing fields", text: "Select a task and fill in description and date." });
       return;
     }
+
+    const isEdit = progressDialogMode === "edit" && editingProgressUpdate?.id;
+    const nextProgress = Math.min(100, Math.max(0, Number(progressForm.progress_percent) || 0));
+    const nextStatus = progressForm.status;
+    const statusChanged = nextStatus !== selectedTaskForProgress.status;
+    const progressChanged = nextProgress !== (selectedTaskForProgress.progress_percent ?? 0);
+
     try {
       setProgressSubmitting(true);
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("task_id", selectedTaskForProgress.id);
-      formData.append("description", progressForm.description);
-      formData.append("progress_percent", progressForm.progress_percent);
+      formData.append("description", progressForm.description.trim());
+      formData.append("progress_percent", nextProgress);
       formData.append("date", progressForm.date);
+
+      const existingImages = progressForm.images.filter((img) => typeof img === "string");
+      if (isEdit) {
+        formData.append("existing_images", JSON.stringify(existingImages));
+      }
+
       progressForm.images.forEach((file) => {
         if (file instanceof File) formData.append("progress_images", file);
       });
-      const res = await fetch("/api/progress-updates", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+
+      const res = await fetch(
+        isEdit ? `/api/progress-updates/${editingProgressUpdate.id}` : "/api/progress-updates",
+        {
+          method: isEdit ? "PUT" : "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Failed to log progress update");
-      setOpenProgressDialog(false);
-      setSelectedTaskForProgress(null);
-      setProgressForm(emptyProgressForm);
+      if (!res.ok) {
+        throw new Error(result.message || `Failed to ${isEdit ? "update" : "log"} progress update`);
+      }
+
+      if (statusChanged || progressChanged) {
+        const statusRes = await fetch(`/api/tasks/${selectedTaskForProgress.id}/status`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: nextStatus,
+            progress_percent: nextProgress,
+            progress_update_already_created: true,
+          }),
+        });
+        const statusResult = await statusRes.json();
+        if (!statusRes.ok) {
+          throw new Error(statusResult.message || "Progress saved but task status could not be updated.");
+        }
+      }
+
+      closeProgressDialog();
       await fetchProject({ silent: true });
-      Swal.fire({ icon: "success", title: "Progress logged", timer: 1500, showConfirmButton: false });
+      Swal.fire({
+        icon: "success",
+        title: isEdit ? "Progress updated" : "Progress logged",
+        timer: 1500,
+        showConfirmButton: false,
+      });
     } catch (err) {
-      Swal.fire({ icon: "error", title: "Error", text: err.message || "Failed to log progress update." });
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: err.message || `Failed to ${progressDialogMode === "edit" ? "update" : "log"} progress update.`,
+      });
     } finally {
       setProgressSubmitting(false);
     }
@@ -589,6 +844,30 @@ const ProjectView = () => {
       </Box>
 
       <Container maxWidth="md" sx={{ px: { xs: 1.5, sm: 2 }, pt: { xs: 2, md: 4 } }}>
+        {project.image && (
+          <Box
+            sx={{
+              mb: 3,
+              borderRadius: 3,
+              overflow: "hidden",
+              border: "1px solid rgba(26,95,180,0.12)",
+              boxShadow: "0 12px 32px rgba(26,95,180,0.12)",
+            }}
+          >
+            <Box
+              component="img"
+              src={buildImageUrl(project.image)}
+              alt={project.name}
+              sx={{
+                width: "100%",
+                maxHeight: { xs: 220, sm: 280, md: 320 },
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          </Box>
+        )}
+
         {/* Desktop hero */}
         <Box
           sx={{
@@ -764,35 +1043,78 @@ const ProjectView = () => {
               </Button>
             </Box>
           ) : (
-            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, borderColor: "rgba(26,95,180,0.15)", width: "100%", overflowX: "auto" }}>
-              <Table size="small" sx={{ width: "100%", tableLayout: "fixed", minWidth: 320 }}>
+            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, borderColor: "rgba(26,95,180,0.15)", width: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <Table
+                size="small"
+                sx={{
+                  width: "100%",
+                  tableLayout: { xs: "auto", md: "fixed" },
+                  minWidth: { xs: 0, sm: 480 },
+                }}
+              >
                 <TableHead>
                   <TableRow sx={{ bgcolor: "rgba(26,95,180,0.06)" }}>
-                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, width: "8%" }}>#</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE }}>Task</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, display: { xs: "none", sm: "table-cell" } }}>Assigned</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, width: "18%" }} align="right">Action</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, width: { xs: 36, sm: 48 }, minWidth: { xs: 36, sm: 48 }, px: { xs: 1, sm: 2 } }}>#</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, px: { xs: 1, sm: 2 } }}>Task</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, display: { xs: "none", md: "table-cell" }, width: "14%", px: { xs: 1, sm: 2 } }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, display: { xs: "none", sm: "table-cell" }, px: { xs: 1, sm: 2 } }}>Assigned</TableCell>
+                    <TableCell
+                      sx={{
+                        fontWeight: 700,
+                        color: BRAND_BLUE,
+                        width: { xs: 52, sm: 88 },
+                        minWidth: { xs: 52, sm: 88 },
+                        px: { xs: 0.75, sm: 2 },
+                        whiteSpace: "nowrap",
+                      }}
+                      align="center"
+                    >
+                      <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                        Actions
+                      </Box>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: { xs: "inline-flex", sm: "none" },
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.72rem",
+                          letterSpacing: 0.2,
+                        }}
+                      >
+                        View
+                      </Box>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {related.tasks.map((task, index) => (
                     <TableRow key={task.id} hover>
-                      <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE }}>{index + 1}</TableCell>
-                      <TableCell>
-                        <Typography fontWeight={600} color={BRAND_BLUE} fontSize="0.875rem">{task.name}</Typography>
+                      <TableCell sx={{ fontWeight: 700, color: BRAND_BLUE, px: { xs: 1, sm: 2 } }}>{index + 1}</TableCell>
+                      <TableCell sx={{ px: { xs: 1, sm: 2 }, minWidth: 0 }}>
+                        <Typography fontWeight={600} color={BRAND_BLUE} fontSize="0.875rem" sx={{ wordBreak: "break-word" }}>{task.name}</Typography>
                         <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap" mt={0.5}>
-                          {task.status && <StatusChip status={task.status} />}
+                          <Box sx={{ display: { xs: "inline-flex", md: "none" } }}>
+                            <StatusChip status={task.status || "pending"} kind="task" />
+                          </Box>
                           <Typography variant="caption" fontWeight={700} color="#9a7b00">{task.progress_percent ?? 0}%</Typography>
                         </Stack>
                         <Typography variant="caption" color="text.secondary" sx={{ display: { xs: "block", sm: "none" } }}>
                           {task.assignedAdmin?.name || "—"}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" } }}>{task.assignedAdmin?.name || "—"}</TableCell>
-                      <TableCell align="right">
-                        <Tooltip title="Log progress">
-                          <IconButton size="small" onClick={() => openProgressForTask(task)} sx={{ color: BRAND_BLUE, bgcolor: "rgba(26,95,180,0.08)" }}>
-                            <ProgressIcon fontSize="small" />
+                      <TableCell sx={{ display: { xs: "none", md: "table-cell" } }}>
+                        <StatusChip status={task.status || "pending"} kind="task" />
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: "none", sm: "table-cell" }, px: { xs: 1, sm: 2 } }}>{task.assignedAdmin?.name || "—"}</TableCell>
+                      <TableCell align="center" sx={{ width: { xs: 52, sm: 88 }, minWidth: { xs: 52, sm: 88 }, px: { xs: 0.5, sm: 2 } }}>
+                        <Tooltip title="View task">
+                          <IconButton
+                            size="small"
+                            onClick={() => openTaskViewDialogFor(task)}
+                            sx={{ color: BRAND_BLUE, bgcolor: "rgba(26,95,180,0.08)" }}
+                          >
+                            <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
@@ -837,13 +1159,28 @@ const ProjectView = () => {
                   }}
                 >
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1} mb={1}>
-                    <Typography fontWeight={700} color={BRAND_BLUE}>{u.taskName || "Progress Update"}</Typography>
-                    <Chip label={`${u.progress_percent ?? 0}%`} size="small" sx={{ bgcolor: "rgba(245,197,24,0.2)", color: "#9a7b00", fontWeight: 700 }} />
+                    <Box flex={1} minWidth={0}>
+                      <Typography fontWeight={700} color={BRAND_BLUE}>{u.taskName || "Progress Update"}</Typography>
+                      {u.date && (
+                        <Typography variant="caption" color="text.secondary" display="block" mt={0.25}>
+                          {formatDate(u.date)}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Stack direction="row" spacing={0.5} alignItems="center" flexShrink={0}>
+                      <Chip label={`${u.progress_percent ?? 0}%`} size="small" sx={{ bgcolor: "rgba(245,197,24,0.2)", color: "#9a7b00", fontWeight: 700 }} />
+                      <Tooltip title="Edit progress update">
+                        <IconButton
+                          size="small"
+                          onClick={() => openEditProgressUpdate(u)}
+                          sx={{ color: BRAND_BLUE, bgcolor: "rgba(26,95,180,0.08)" }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                   </Stack>
                   <Typography variant="body2" color="text.secondary" mb={1}>{u.description}</Typography>
-                  {u.date && (
-                    <Typography variant="caption" color="text.secondary">{formatDate(u.date)}</Typography>
-                  )}
                   {u.images?.length > 0 && (
                     <Box display="flex" gap={1} flexWrap="wrap" mt={1.5}>
                       {u.images.map((img, idx) => {
@@ -1016,8 +1353,10 @@ const ProjectView = () => {
       </Dialog>
 
       {/* Progress Dialog */}
-      <Dialog open={openProgressDialog} onClose={() => !progressSubmitting && setOpenProgressDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ ...headerGradient, color: "white", fontWeight: 700 }}>Log Progress Update</DialogTitle>
+      <Dialog open={openProgressDialog} onClose={() => !progressSubmitting && closeProgressDialog()} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ ...headerGradient, color: "white", fontWeight: 700 }}>
+          {progressDialogMode === "edit" ? "Edit Progress Update" : "Log Progress Update"}
+        </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
             <FormControl fullWidth size="small" required sx={dialogFieldSx}>
@@ -1028,7 +1367,15 @@ const ProjectView = () => {
                 onChange={(e) => {
                   const task = related.tasks?.find((t) => t.id === e.target.value);
                   setSelectedTaskForProgress(task || null);
-                  if (task) setProgressForm((prev) => ({ ...prev, progress_percent: task.progress_percent ?? 0 }));
+                  if (task) {
+                    setProgressForm((prev) => ({
+                      ...prev,
+                      status: task.status || "pending",
+                      ...(progressDialogMode === "create"
+                        ? { progress_percent: task.progress_percent ?? 0 }
+                        : {}),
+                    }));
+                  }
                 }}
               >
                 {(related.tasks || []).map((task) => (
@@ -1036,22 +1383,158 @@ const ProjectView = () => {
                 ))}
               </Select>
             </FormControl>
+            <FormControl fullWidth size="small" required sx={dialogFieldSx}>
+              <InputLabel>Task Status</InputLabel>
+              <Select
+                label="Task Status"
+                value={progressForm.status}
+                onChange={(e) => setProgressForm({ ...progressForm, status: e.target.value })}
+              >
+                {TASK_STATUSES.map((status) => (
+                  <MenuItem key={status} value={status}>
+                    {formatStatus(status)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField label="Description" required fullWidth size="small" multiline rows={3} value={progressForm.description} onChange={(e) => setProgressForm({ ...progressForm, description: e.target.value })} sx={dialogFieldSx} />
-            <TextField label="Progress (%)" type="number" fullWidth size="small" inputProps={{ min: 0, max: 100 }} value={progressForm.progress_percent} onChange={(e) => setProgressForm({ ...progressForm, progress_percent: parseInt(e.target.value, 10) || 0 })} sx={dialogFieldSx} />
+            <TextField
+              label="Progress (%)"
+              type="number"
+              fullWidth
+              size="small"
+              inputProps={{ min: 0, max: 100 }}
+              value={progressForm.progress_percent}
+              onChange={(e) =>
+                setProgressForm({
+                  ...progressForm,
+                  progress_percent: Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)),
+                })
+              }
+              sx={dialogFieldSx}
+            />
             <TextField label="Date" type="date" required fullWidth size="small" InputLabelProps={{ shrink: true }} value={progressForm.date} onChange={(e) => setProgressForm({ ...progressForm, date: e.target.value })} sx={dialogFieldSx} />
-            <Button variant="outlined" component="label" sx={{ color: BRAND_BLUE, borderColor: BRAND_BLUE, textTransform: "none" }}>
+            {selectedTaskForProgress &&
+              taskNeedsProgressNote(
+                selectedTaskForProgress,
+                progressForm.status,
+                Number(progressForm.progress_percent) || 0
+              ) && (
+                <Typography variant="caption" color="text.secondary">
+                  Updating status or progress from 0% will be saved together with this progress note.
+                </Typography>
+              )}
+            <Button variant="outlined" component="label" sx={{ color: BRAND_BLUE, borderColor: BRAND_BLUE, textTransform: "none", alignSelf: "flex-start" }}>
               Attach Images
-              <input type="file" hidden multiple accept="image/*" onChange={(e) => setProgressForm({ ...progressForm, images: Array.from(e.target.files || []) })} />
+              <input type="file" hidden multiple accept="image/*" onChange={handleAddProgressImages} />
             </Button>
-            {progressForm.images.length > 0 && (
-              <Typography variant="caption" color="text.secondary">{progressForm.images.length} image(s) selected</Typography>
+            {progressImagePreviews.length > 0 && (
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                  {progressImagePreviews.length} image(s) selected — tap to preview
+                </Typography>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: {
+                      xs: "repeat(3, minmax(0, 1fr))",
+                      sm: "repeat(4, minmax(0, 1fr))",
+                    },
+                    gap: 1,
+                  }}
+                >
+                  {progressImagePreviews.map((preview) => (
+                    <Box
+                      key={`${preview.name}-${preview.index}`}
+                      sx={{
+                        position: "relative",
+                        borderRadius: 1.5,
+                        overflow: "hidden",
+                        border: "2px solid rgba(26,95,180,0.15)",
+                        bgcolor: "rgba(26,95,180,0.04)",
+                        aspectRatio: "1",
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={preview.url}
+                        alt={preview.name}
+                        onClick={() => setPreview({ open: true, url: preview.url, fileName: preview.name })}
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          cursor: "pointer",
+                          display: "block",
+                          "&:hover": { opacity: 0.92 },
+                        }}
+                      />
+                      <IconButton
+                        size="small"
+                        aria-label={`Remove ${preview.name}`}
+                        onClick={() => handleRemoveProgressImage(preview.index)}
+                        sx={{
+                          position: "absolute",
+                          top: 4,
+                          right: 4,
+                          bgcolor: "rgba(0,0,0,0.55)",
+                          color: "#fff",
+                          width: 24,
+                          height: 24,
+                          "&:hover": { bgcolor: "rgba(198,40,40,0.9)" },
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
             )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => { setOpenProgressDialog(false); setSelectedTaskForProgress(null); setProgressForm(emptyProgressForm); }} disabled={progressSubmitting} sx={{ color: BRAND_BLUE }}>Cancel</Button>
+          <Button onClick={closeProgressDialog} disabled={progressSubmitting} sx={{ color: BRAND_BLUE }}>Cancel</Button>
           <Button onClick={handleProgressUpdateSubmit} variant="contained" disabled={progressSubmitting} sx={primaryButtonSx}>
-            {progressSubmitting ? <CircularProgress size={22} color="inherit" /> : "Save Update"}
+            {progressSubmitting ? (
+              <CircularProgress size={22} color="inherit" />
+            ) : progressDialogMode === "edit" ? (
+              "Save Changes"
+            ) : (
+              "Save Update"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Task Dialog */}
+      <Dialog
+        open={openTaskViewDialog}
+        onClose={() => {
+          setOpenTaskViewDialog(false);
+          setSelectedTaskForView(null);
+        }}
+        maxWidth="md"
+        fullWidth
+        scroll="paper"
+      >
+        <DialogTitle sx={{ ...headerGradient, color: "white", fontWeight: 700, pr: 6 }}>
+          Task Details
+        </DialogTitle>
+        <DialogContent sx={{ pt: { xs: 2, sm: 3 }, px: { xs: 2, sm: 3 }, pb: 2 }}>
+          {selectedTaskForView && (
+            <TaskViewCard task={selectedTaskForView} onLogProgress={openProgressFromTaskView} />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setOpenTaskViewDialog(false);
+              setSelectedTaskForView(null);
+            }}
+            sx={{ color: BRAND_BLUE }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

@@ -8,6 +8,7 @@ import {
   ElectricalServices,
   RateReview,
   ContactMail,
+  People,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { styled, useTheme } from "@mui/material/styles";
@@ -72,6 +73,12 @@ const NAV_LINKS = [
     icon: ContactMail,
     path: "/inquiries",
     paths: ["/inquiries"],
+  },
+  {
+    text: "Users",
+    icon: People,
+    path: "/users",
+    paths: ["/users"],
   },
   {
     text: "Settings",

@@ -30,6 +30,7 @@ import {
   Engineering,
   Category as CategoryIcon,
   Bolt,
+  Image as ImageIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -46,6 +47,7 @@ import {
   statusColors,
   formatStatus,
 } from "./projectTheme";
+import ProjectImageUpload from "./ProjectImageUpload";
 
 const STATUS_OPTIONS = [
   "planning",
@@ -169,6 +171,8 @@ const ProjectCreate = () => {
   const [engineers, setEngineers] = useState([]);
   const [loadingEngineers, setLoadingEngineers] = useState(true);
   const [form, setForm] = useState(INITIAL_FORM);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   useEffect(() => {
     const fetchEngineers = async () => {
@@ -234,6 +238,25 @@ const ProjectCreate = () => {
     return payload;
   };
 
+  const buildFormData = () => {
+    const formData = new FormData();
+    const payload = buildPayload();
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        formData.append(key, String(value));
+      }
+    });
+    if (imageFile) {
+      formData.append("project_image", imageFile);
+    }
+    return formData;
+  };
+
+  const handleImageFile = (file) => {
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
   const handleCreate = async () => {
     if (!isFormValid()) return;
     try {
@@ -243,9 +266,8 @@ const ProjectCreate = () => {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(buildPayload()),
+        body: buildFormData(),
       });
       const result = await response.json();
       if (result.success) {
@@ -464,7 +486,17 @@ const ProjectCreate = () => {
           </Alert>
         )}
 
-        <SectionCard step={1} icon={InfoOutlined} title="Basic Info" hint="Name and site location for this job">
+        <SectionCard step={1} icon={ImageIcon} title="Project Photo" hint="Cover image for listings and the public website">
+          <ProjectImageUpload
+            preview={imagePreview}
+            onFile={handleImageFile}
+            onInvalidFile={() =>
+              Swal.fire({ icon: "error", title: "Invalid file", text: "Please choose an image file (JPG, PNG, GIF)." })
+            }
+          />
+        </SectionCard>
+
+        <SectionCard step={2} icon={InfoOutlined} title="Basic Info" hint="Name and site location for this job">
           <Stack spacing={2.5}>
             <TextField
               fullWidth
@@ -500,7 +532,7 @@ const ProjectCreate = () => {
           </Stack>
         </SectionCard>
 
-        <SectionCard step={2} icon={EventNote} title="Schedule & Status" hint="Timeline and current project stage">
+        <SectionCard step={3} icon={EventNote} title="Schedule & Status" hint="Timeline and current project stage">
           <Stack spacing={2.5}>
             <FormControl fullWidth sx={fieldSx}>
               <InputLabel>Status</InputLabel>
@@ -568,7 +600,7 @@ const ProjectCreate = () => {
           </Stack>
         </SectionCard>
 
-        <SectionCard step={3} icon={AttachMoney} title="Financial" hint="Budget tracking in your chosen currency">
+        <SectionCard step={4} icon={AttachMoney} title="Financial" hint="Budget tracking in your chosen currency">
           <Stack spacing={2.5}>
             <TextField
               fullWidth
@@ -608,7 +640,7 @@ const ProjectCreate = () => {
           </Stack>
         </SectionCard>
 
-        <SectionCard step={4} icon={Engineering} title="Client & Engineer" hint="Who owns the job and who leads on site">
+        <SectionCard step={5} icon={Engineering} title="Client & Engineer" hint="Who owns the job and who leads on site">
           <Stack spacing={2.5}>
             <TextField
               fullWidth
@@ -639,7 +671,7 @@ const ProjectCreate = () => {
           </Stack>
         </SectionCard>
 
-        <SectionCard step={5} icon={CategoryIcon} title="Category" hint="Type of electrical work">
+        <SectionCard step={6} icon={CategoryIcon} title="Category" hint="Type of electrical work">
           <Stack spacing={2}>
             <TextField
               fullWidth
